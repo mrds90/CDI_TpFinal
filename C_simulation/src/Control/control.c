@@ -16,10 +16,7 @@
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
 
-#define FREC_TO_MS(frequency) (1000000 / (frequency)) / 1000
-
 #define V_TO_MV(x)  ((x)*1000)
-
 
 /*========= [PRIVATE DATA TYPES] ===============================================*/
 
@@ -37,8 +34,8 @@ STATIC uint16_t input_mv = 0;
 
 /*========= [PUBLIC FUNCTION IMPLEMENTATION] ===================================*/
 
-void CONTROLLER_SquareOpenLoop(void *freq) {
-    uint8_t frequency = *((uint8_t*) freq);
+void CONTROLLER_SquareOpenLoop(void *per) {
+    uint8_t period = *((uint8_t*) per);
     static const uint16_t output[2] = {V_TO_MV(2), V_TO_MV(1)};
     static uint8_t out_index = 0;
     osal_tick_t last_enter_to_task = OSAL_TASK_GetTickCount();
@@ -49,7 +46,7 @@ void CONTROLLER_SquareOpenLoop(void *freq) {
         INTERFACE_DACWrite(output[out_index]);
         input_mv = INTERFACE_ADCRead();
         out_index = (out_index + 1) & 1;
-        OSAL_TASK_DelayUntil(&last_enter_to_task, OSAL_MS_TO_TICKS(FREC_TO_MS(frequency)) / 2);
+        OSAL_TASK_DelayUntil(&last_enter_to_task, OSAL_MS_TO_TICKS(period*1000) / 2);
     }
 }
 

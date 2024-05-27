@@ -75,7 +75,7 @@ step_output_str = f"static int32_t step_expected_output[] = {{{', '.join(map(str
 
 reset_recurrence()
 
-t_square, u_square = SquareFunc(fs=1/h, f0=(10), amp=9930, samples=10*(1/h))
+t_square, u_square = SquareFunc(fs=1/h, f0=(0.125), amp=9930, samples=100*(1/h))
 u_square+= 9929
 u_square=u_square[1:]
 t_square=t_square[1:]

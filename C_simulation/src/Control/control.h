@@ -23,6 +23,7 @@ extern "C" {
 
 /*========= [PUBLIC MACRO AND CONSTANTS] =======================================*/
 
+#define PERIODO_SQUARE 8
 /*========= [PUBLIC DATA TYPE] =================================================*/
 
 /*========= [PUBLIC FUNCTION DECLARATIONS] =====================================*/
