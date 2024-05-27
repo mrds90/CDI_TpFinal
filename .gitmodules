@@ -1,3 +1,0 @@
-[submodule "C_simulation/src/OSAL_Project"]
-	path = C_simulation/src/OSAL_Project
-	url = git@github.com:mrds90/OSAL_Project.git
