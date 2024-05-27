@@ -19,13 +19,13 @@
 #define DEN_SIZE 3
 
 // Coeficientes del numerador en Q15
-#define NUM0 Q15_SCALE(0.00067056)
-#define NUM1 Q15_SCALE(0.00064738)
+#define NUM0 Q15_SCALE(0.04976845)
+#define NUM1 Q15_SCALE(0.03505064)
 
 // Coeficientes del denominador en Q15
 #define DEN0 Q15_SCALE(1.0)
-#define DEN1 Q15_SCALE(-1.898506534800089)
-#define DEN2 Q15_SCALE(0.8998244812091836)
+#define DEN1 Q15_SCALE(-1.2631799459800208)
+#define DEN2 Q15_SCALE(0.34799904079225535)
 
 /*========= [PRIVATE DATA TYPES] ===============================================*/
 

@@ -17,8 +17,8 @@ os.makedirs(expected_output_dir, exist_ok=True)  # Crea el directorio si no exis
 expected_output_path = os.path.join(expected_output_dir, "expected_output.h")
 
 # Definición de coeficientes en Q15
-NUM = [int(0.00067056 * (1 << 15)), int(0.00064738 * (1 << 15))]
-DEN = [int(1.0 * (1 << 15)), int(-1.898506534800089 * (1 << 15)), int(0.8998244812091836 * (1 << 15))]
+NUM = [int(0.04976845 * (1 << 15)), int(0.03505064 * (1 << 15))]
+DEN = [int(1.0 * (1 << 15)), int(-1.2631799459800208 * (1 << 15)), int(0.34799904079225535 * (1 << 15))]
 
 h = 0.005
 # Buffers para mantener el estado
@@ -75,7 +75,7 @@ step_output_str = f"static int32_t step_expected_output[] = {{{', '.join(map(str
 
 reset_recurrence()
 
-t_square, u_square = SquareFunc(fs=1/h, f0=(0.125), amp=9930, samples=100*(1/h))
+t_square, u_square = SquareFunc(fs=1/h, f0=(1), amp=9930, samples=5*(1/h))
 u_square+= 9929
 u_square=u_square[1:]
 t_square=t_square[1:]
