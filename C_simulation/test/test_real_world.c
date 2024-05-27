@@ -38,12 +38,12 @@ int32_t RecurrenceFunction(int32_t input);
 
 void test_RecurrenceFunction(void) {
         // Definir el tamaño de los arreglos de entrada y salida esperados
-    const int num_samples = sizeof(expected_output) / sizeof(expected_output[0]);
+    const int num_samples = sizeof(step_expected_output) / sizeof(step_expected_output[0]);
 
     // Realizar el test
     for (int i = 0; i < num_samples; ++i) {
-        int32_t actual_output = RecurrenceFunction(input[i]);
-        TEST_ASSERT_EQUAL_INT32(expected_output[i], actual_output);
+        int32_t actual_output = RecurrenceFunction(step_input[i]);
+        TEST_ASSERT_EQUAL_INT32(step_expected_output[i], actual_output);
     }
 }
 

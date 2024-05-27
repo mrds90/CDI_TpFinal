@@ -12,15 +12,26 @@
 /*========= [DEPENDENCIES] =====================================================*/
 
 #include "unity.h"
+
+#include "interface.h"
 #include "control.h"
 #include "real_world.h"
+
 #include "osal_task.h"
 #include "port_task_freertos.h"
 #include "FreeRTOS_task_simulated.h"
+#include "expected_output.h"
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
 
+#define ADC_MAX_MV 3300
+
 /*========= [PRIVATE DATA TYPES] ===============================================*/
+
+typedef struct {
+    int32_t input;
+    int32_t output;
+} real_world_t;
 
 /*========= [TASK DECLARATIONS] ================================================*/
 
@@ -39,13 +50,23 @@ void TaskRealWorld(void *not_used);
 /*========= [TEST FUNCTION IMPLEMENTATION] ===================================*/
 
 void test_SquareOpenLoop(void) {
-    CONTROLLER_SquareOpenLoop(10);
-    TEST_ASSERT_EQUAL_UINT32(50, OSAL_TASK_GetTickCount());
-    for (uint8_t i = 0; i < 50; i += 5) {
-        TaskRealWorld(NULL);
+    static osal_tick_t tick_count = 0;
+
+    TESTED_VARIABLE real_world_t real_world;
+    TESTED_VARIABLE uint16_t input_mv;
+    for (uint8_t j = 0; j < 5; j++) {
+        CONTROLLER_SquareOpenLoop(10);
+        if (tick_count != 0) {
+            TEST_ASSERT_EQUAL_UINT16((square_expected_output[(tick_count - 1) / 5] * ADC_MAX_MV) >> 15, input_mv);
+        }
+        for (uint8_t i = tick_count; i < tick_count + 50; i += 5) {
+            TEST_ASSERT_EQUAL_INT32(square_input[i / 5], real_world.input);
+            TaskRealWorld(NULL);
+            TEST_ASSERT_EQUAL_INT32(square_expected_output[i / 5], REAL_WORLD_Output());
+        }
+        tick_count += 50;
+        TEST_ASSERT_EQUAL_UINT32(tick_count, OSAL_TASK_GetTickCount());
     }
-    CONTROLLER_SquareOpenLoop(10);
-    TEST_ASSERT_EQUAL_UINT32(100, OSAL_TASK_GetTickCount());
 }
 
 /*========= [PRIVATE FUNCTION IMPLEMENTATION] ==================================*/

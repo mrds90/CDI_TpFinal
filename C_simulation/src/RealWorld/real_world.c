@@ -30,8 +30,8 @@
 /*========= [PRIVATE DATA TYPES] ===============================================*/
 
 typedef struct {
-    uint32_t input;
-    uint32_t output;
+    int32_t input;
+    int32_t output;
 } real_world_t;
 
 /*========= [TASK DECLARATIONS] ================================================*/
@@ -46,7 +46,7 @@ STATIC int32_t RecurrenceFunction(int32_t input);
 
 /*========= [LOCAL VARIABLES] ==================================================*/
 
-static real_world_t real_world;
+STATIC real_world_t real_world;
 
 /*========= [STATE FUNCTION POINTERS] ==========================================*/
 
@@ -60,11 +60,11 @@ void REAL_WORLD_Init(void) {
     OSAL_TASK_Create(&real_world_task, TaskRealWorld, NULL, TASK_PRIORITY_NORMAL);
 }
 
-void REAL_WORLD_Input(uint32_t value) {
+void REAL_WORLD_Input(int32_t value) {
     real_world.input = value;
 }
 
-uint32_t REAL_WORLD_Output(void) {
+int32_t REAL_WORLD_Output(void) {
     return real_world.output;
 }
 

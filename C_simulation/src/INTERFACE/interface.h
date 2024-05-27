@@ -1,15 +1,15 @@
 /**
- * @file real_world.h
+ * @file interface.h
  * @author Marcos Dominguez
  *
- * @brief Simulate a physical plant
+ * @brief adc dac wrapper.
  *
  * @version 0.1
  * @date 2024-05-27
  */
 
-#ifndef REAL_WORLD_H
-#define REAL_WORLD_H
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
 #ifdef  __cplusplus
 extern "C" {
@@ -17,27 +17,22 @@ extern "C" {
 
 /*========= [DEPENDENCIES] =====================================================*/
 
-#include "data_types.h"
 #include "utils.h"
+#include "data_types.h"
 
 /*========= [PUBLIC MACRO AND CONSTANTS] =======================================*/
-
-#define Q15_SCALE(x)  (int32_t)((x) * (1 << 15))
 
 /*========= [PUBLIC DATA TYPE] =================================================*/
 
 /*========= [PUBLIC FUNCTION DECLARATIONS] =====================================*/
 
-void REAL_WORLD_Init(void);
+void INTERFACE_DACWrite(uint16_t output_dac_mv);
 
-void REAL_WORLD_Input(int32_t value);
-
-int32_t REAL_WORLD_Output(void);
-
+uint16_t INTERFACE_ADCRead(void);
 
 #ifdef  __cplusplus
 }
 
 #endif
 
-#endif  /* REAL_WORLD_H */
+#endif  /* INTERFACE_H */

@@ -11,12 +11,13 @@
 /*========= [DEPENDENCIES] =====================================================*/
 
 #include "control.h"
-#include "real_world.h"
+#include "interface.h"
 #include "osal_task.h"
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
 
 #define FREC_TO_MS(frequency) (1000000 / (frequency)) / 1000
+
 
 /*========= [PRIVATE DATA TYPES] ===============================================*/
 
@@ -28,22 +29,24 @@
 
 /*========= [LOCAL VARIABLES] ==================================================*/
 
-STATIC uint32_t output = 0;
+STATIC uint16_t input_mv = 0;
 
 /*========= [STATE FUNCTION POINTERS] ==========================================*/
 
 /*========= [PUBLIC FUNCTION IMPLEMENTATION] ===================================*/
 
 void CONTROLLER_SquareOpenLoop(uint8_t frequency) {
+    static const uint16_t output[2] = {2000, 1000};
+    static uint8_t out_index = 0;
     osal_tick_t last_enter_to_task = OSAL_TASK_GetTickCount();
-
     #ifndef TEST
     while (TRUE)
     #endif
     {
-        output ^= Q15_SCALE(1);
-        REAL_WORLD_Input(output);
-        OSAL_TASK_DelayUntil(&last_enter_to_task, OSAL_MS_TO_TICKS(FREC_TO_MS(frequency))/2);
+        INTERFACE_DACWrite(output[out_index]);
+        input_mv = INTERFACE_ADCRead();
+        out_index = (out_index + 1) & 1;
+        OSAL_TASK_DelayUntil(&last_enter_to_task, OSAL_MS_TO_TICKS(FREC_TO_MS(frequency)) / 2);
     }
 }
 
