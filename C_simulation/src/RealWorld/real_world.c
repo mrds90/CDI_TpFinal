@@ -46,7 +46,10 @@ STATIC int32_t RecurrenceFunction(int32_t input);
 
 /*========= [LOCAL VARIABLES] ==================================================*/
 
-STATIC real_world_t real_world;
+STATIC real_world_t real_world = {
+    .input = 0,
+    .output = 0
+};
 
 /*========= [STATE FUNCTION POINTERS] ==========================================*/
 
