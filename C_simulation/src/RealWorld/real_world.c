@@ -10,52 +10,81 @@
 
 /*========= [DEPENDENCIES] =====================================================*/
 
-#include "reat_world.h"
+#include "real_world.h"
 #include "osal_task.h"
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
-
-/*========= [PRIVATE DATA TYPES] ===============================================*/
-
-/*========= [TASK DECLARATIONS] ================================================*/
-
-/*========= [PRIVATE FUNCTION DECLARATIONS] ====================================*/
-
-/*========= [INTERRUPT FUNCTION DECLARATIONS] ==================================*/
-
-/*========= [LOCAL VARIABLES] ==================================================*/
-
-/*========= [STATE FUNCTION POINTERS] ==========================================*/
-
-/*========= [PUBLIC FUNCTION IMPLEMENTATION] ===================================*/
-
-void REAL_WORLD_Init(void);
-
-void REAL_WORLD_Input(uint32_t value) {}
-
-uint32_t REAL_WORLD_Output(void);
-
-/*========= [PRIVATE FUNCTION IMPLEMENTATION] ==================================*/
-
 
 #define NUM_SIZE 2
 #define DEN_SIZE 3
 
 // Coeficientes del numerador en Q15
-#define NUM0 Q15_SCALE(0.14768561)
-#define NUM1 Q15_SCALE(0.07379223)
+#define NUM0 Q15_SCALE(0.00067056)
+#define NUM1 Q15_SCALE(0.00064738)
 
 // Coeficientes del denominador en Q15
 #define DEN0 Q15_SCALE(1.0)
-#define DEN1 Q15_SCALE(-0.8996254943415778)
-#define DEN2 Q15_SCALE(0.12110333239232968)
+#define DEN1 Q15_SCALE(-1.898506534800089)
+#define DEN2 Q15_SCALE(0.8998244812091836)
 
-// Buffers para mantener el estado
-static int32_t input_buffer[NUM_SIZE] = {[0 ... NUM_SIZE - 1] = 0};
-static int32_t output_buffer[DEN_SIZE - 1] = {[0 ... DEN_SIZE - 2] = 0};
+/*========= [PRIVATE DATA TYPES] ===============================================*/
+
+typedef struct {
+    uint32_t input;
+    uint32_t output;
+} real_world_t;
+
+/*========= [TASK DECLARATIONS] ================================================*/
+
+void TaskRealWorld(void *not_used);
+
+/*========= [PRIVATE FUNCTION DECLARATIONS] ====================================*/
+
+STATIC int32_t RecurrenceFunction(int32_t input);
+
+/*========= [INTERRUPT FUNCTION DECLARATIONS] ==================================*/
+
+/*========= [LOCAL VARIABLES] ==================================================*/
+
+static real_world_t real_world;
+
+/*========= [STATE FUNCTION POINTERS] ==========================================*/
+
+/*========= [PUBLIC FUNCTION IMPLEMENTATION] ===================================*/
+
+void REAL_WORLD_Init(void) {
+    static osal_task_t real_world_task;
+    static osal_stack_holder_t real_world_stack[STACK_SIZE_REAL_WORLD];
+    static osal_task_holder_t real_world_holder;
+    OSAL_TASK_LoadStruct(&real_world_task, real_world_stack, &real_world_holder, STACK_SIZE_REAL_WORLD);
+    OSAL_TASK_Create(&real_world_task, TaskRealWorld, NULL, TASK_PRIORITY_NORMAL);
+}
+
+void REAL_WORLD_Input(uint32_t value) {
+    real_world.input = value;
+}
+
+uint32_t REAL_WORLD_Output(void) {
+    return real_world.output;
+}
+
+/*========= [PRIVATE FUNCTION IMPLEMENTATION] ==================================*/
+
+STATIC void TaskRealWorld(void *not_used) {
+    #ifndef TEST
+    while (TRUE)
+    #endif
+    {
+        real_world.output = RecurrenceFunction(real_world.input);
+        OSAL_TASK_Delay(OSAL_MS_TO_TICKS(5));
+    }
+}
 
 // Función de recurrencia en tiempo real
-int32_t funcion_recurrencia(int32_t input) {
+STATIC int32_t RecurrenceFunction(int32_t input) {
+// Buffers para mantener el estado
+    static int32_t input_buffer[NUM_SIZE] = {[0 ... NUM_SIZE - 1] = 0};
+    static int32_t output_buffer[DEN_SIZE - 1] = {[0 ... DEN_SIZE - 2] = 0};
     // Desplazar valores en el buffer de entrada
     for (int i = NUM_SIZE - 1; i > 0; --i) {
         input_buffer[i] = input_buffer[i - 1];

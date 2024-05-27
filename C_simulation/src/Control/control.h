@@ -1,0 +1,37 @@
+/**
+ * @file control.h
+ * @author Marcos Dominguez
+ *
+ * @brief Controller
+ *
+ * @version 0.1
+ * @date 2024-05-27
+ */
+
+
+#ifndef _INC_TEMPLATE_H
+#define _INC_TEMPLATE_H
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+/*========= [DEPENDENCIES] =====================================================*/
+
+#include "data_types.h"
+#include "utils.h"
+
+/*========= [PUBLIC MACRO AND CONSTANTS] =======================================*/
+
+/*========= [PUBLIC DATA TYPE] =================================================*/
+
+/*========= [PUBLIC FUNCTION DECLARATIONS] =====================================*/
+
+void CONTROLLER_SquareOpenLoop(uint8_t frequency);
+
+#ifdef  __cplusplus
+}
+
+#endif
+
+#endif  /* _INC_TEMPLATE_H */

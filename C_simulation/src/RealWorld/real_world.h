@@ -17,7 +17,8 @@ extern "C" {
 
 /*========= [DEPENDENCIES] =====================================================*/
 
-#include <stdint.h>
+#include "data_types.h"
+#include "utils.h"
 
 /*========= [PUBLIC MACRO AND CONSTANTS] =======================================*/
 
@@ -32,8 +33,6 @@ void REAL_WORLD_Init(void);
 void REAL_WORLD_Input(uint32_t value);
 
 uint32_t REAL_WORLD_Output(void);
-
-
 
 
 #ifdef  __cplusplus

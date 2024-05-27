@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #include "osal_global.h"
+#include "task_manager.h"
 /// \cond
 #include "data_types.h"
 /// \endcond

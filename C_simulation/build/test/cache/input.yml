@@ -43,7 +43,9 @@
 - :rake_columns: '120'
 :defines:
   :test:
-  - &1 []
+  - &1
+    - OS_FREERTOS=1
+    - OS_USED=OS_FREERTOS
   - TEST
   :test_preprocess:
   - *1
@@ -51,7 +53,9 @@
   :release: []
   :release_preprocess: []
   :use_test_definition: false
-  :common: []
+  :common:
+  - OS_FREERTOS=1
+  - OS_USED=OS_FREERTOS
 :libraries:
   :flag: "-l${1}"
   :path_flag: "-L ${1}"
