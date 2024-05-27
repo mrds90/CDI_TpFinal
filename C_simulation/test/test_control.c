@@ -51,11 +51,11 @@ void TaskRealWorld(void *not_used);
 
 void test_SquareOpenLoop(void) {
     static osal_tick_t tick_count = 0;
-
+    uint8_t freq = 10;
     TESTED_VARIABLE real_world_t real_world;
     TESTED_VARIABLE uint16_t input_mv;
     for (uint8_t j = 0; j < 5; j++) {
-        CONTROLLER_SquareOpenLoop(10);
+        CONTROLLER_SquareOpenLoop((void *)(&freq));
         if (tick_count != 0) {
             TEST_ASSERT_EQUAL_UINT16((square_expected_output[(tick_count - 1) / 5] * ADC_MAX_MV) >> 15, input_mv);
         }

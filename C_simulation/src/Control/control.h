@@ -27,7 +27,7 @@ extern "C" {
 
 /*========= [PUBLIC FUNCTION DECLARATIONS] =====================================*/
 
-void CONTROLLER_SquareOpenLoop(uint8_t frequency);
+void CONTROLLER_SquareOpenLoop(void *freq);
 
 #ifdef  __cplusplus
 }
