@@ -17,9 +17,9 @@ extern "C"
 {
 #endif
 
-#ifdef TEST
-
 #include <stdint.h>
+
+#ifdef TEST
 
 #define STATIC
 
@@ -47,6 +47,8 @@ extern "C"
 #define PERCENTAGE(percent, x) (MUL_UU(percent, x) / 100)
 
 #endif
+
+#define Q15_SCALE(x)  (int32_t)((x) * (1 << 15))
 
 #ifndef NULL
     #define NULL ((void *)0)

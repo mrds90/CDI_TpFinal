@@ -1,6 +1,19 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import control as cnt
+
+CB_color_cycle = (
+    "#377eb8",
+    "#ff7f00",
+    "#4daf4a",
+    "#f781bf",
+    "#a65628",
+    "#984ea3",
+    "#999999",
+    "#e41a1c",
+    "#dede00",
+)
 
 def SquareFunc(fs: float, f0: float, amp: float = 1.0, samples: int = 100) -> [np.ndarray, np.ndarray]:
     t_step = np.arange(0, samples) / fs
@@ -24,37 +37,68 @@ h = 0.005
 # Buffers para mantener el estado
 input_buffer = [0] * len(NUM)
 output_buffer = [0] * (len(DEN) - 1)
+input_buffer2 = [0] * len(NUM)
+output_buffer2 = [0] * (len(DEN) - 1)
 
-def reset_recurrence():
+def reset_recurrence(num, den):
     global input_buffer, output_buffer
-    input_buffer = [0] * len(NUM)
-    output_buffer = [0] * (len(DEN) - 1)
+    input_buffer = [0] * len(num)
+    output_buffer = [0] * (len(den) - 1)
     
 # Función de recurrencia adaptada a Python
-def recurrence_function(input_value):
+def recurrence_function(input_value, num, den):
     global input_buffer, output_buffer
 
     # Desplazar valores en el buffer de entrada
-    for i in range(len(NUM) - 1, 0, -1):
+    for i in range(len(num) - 1, 0, -1):
         input_buffer[i] = input_buffer[i - 1]
     input_buffer[0] = input_value
 
     # Calcular la parte del numerador
     output = 0
-    for i in range(len(NUM)):
-        output += (NUM[i] * input_buffer[i]) >> 15
+    for i in range(len(num)):
+        output += (num[i] * input_buffer[i]) >> 15
 
     # Calcular la parte del denominador
-    for i in range(1, len(DEN)):
-        output -= (DEN[i] * output_buffer[i - 1]) >> 15
+    for i in range(1, len(den)):
+        output -= (den[i] * output_buffer[i - 1]) >> 15
 
     # Desplazar valores en el buffer de salida
-    for i in range(len(DEN) - 2, 0, -1):
+    for i in range(len(den) - 2, 0, -1):
         output_buffer[i] = output_buffer[i - 1]
     output_buffer[0] = output
 
     return output
 
+
+def reset_recurrence2(num, den):
+    global input_buffer2, output_buffer2
+    input_buffer2 = [0] * len(num)
+    output_buffer2 = [0] * (len(den) - 1)
+    
+def recurrence_function2(input_value, num, den):
+    global input_buffer2, output_buffer2
+
+    # Desplazar valores en el buffer de entrada
+    for i in range(len(num) - 1, 0, -1):
+        input_buffer2[i] = input_buffer2[i - 1]
+    input_buffer2[0] = input_value
+
+    # Calcular la parte del numerador
+    output = 0
+    for i in range(len(num)):
+        output += (num[i] * input_buffer2[i]) >> 15
+
+    # Calcular la parte del denominador
+    for i in range(1, len(den)):
+        output -= (den[i] * output_buffer2[i - 1]) >> 15
+
+    # Desplazar valores en el buffer de salida
+    for i in range(len(den) - 2, 0, -1):
+        output_buffer2[i] = output_buffer2[i - 1]
+    output_buffer2[0] = output
+
+    return output
 
 
 # Simulación en Python
@@ -66,29 +110,79 @@ u_step = np.concatenate((np.zeros(int(len(t_step) / 2)), 2**15 * np.ones(int(len
 y_step = []
 
 for value in u_step:
-    y_step.append(recurrence_function(int(value)))
+    y_step.append(recurrence_function(int(value),NUM,DEN))
 
 # Convertir a numpy array para facilitar el ploteo
 y_step = np.array(y_step)
 step_input_str = f"static int32_t step_input[] = {{{', '.join(map(str, u_step.astype(int)))}}};\n"
 step_output_str = f"static int32_t step_expected_output[] = {{{', '.join(map(str, y_step))}}};\n\n"
 
-reset_recurrence()
+reset_recurrence2(NUM,DEN)
 
-t_square, u_square = SquareFunc(fs=1/h, f0=(1), amp=9930, samples=5*(1/h))
-u_square+= 9929
+OFFSET = 9929
+AMP = 9930
+
+t_square, u_square = SquareFunc(fs=1/h, f0=(1), amp=AMP, samples=5*(1/h))
+u_square+= OFFSET
 u_square=u_square[1:]
 t_square=t_square[1:]
+
+u_90 = np.ones(int(len(t_square) )) * (0.9 * (AMP) + OFFSET)
+t_90 = t_square
+u_10 = np.ones(int(len(t_square) )) * (0.1 * (AMP) + OFFSET)
+t_10 = t_square
 
 y_square = []
 
 for value in u_square:
-    y_square.append(recurrence_function(int(value)))
+    y_square.append(recurrence_function2(int(value),NUM,DEN))
 
 # Convertir a numpy array para facilitar el ploteo
 y_square = np.array(y_square)
+
+t1 = t_square[y_square > (0.1 * (AMP) + OFFSET)][0]
+t2 = t_square[y_square > (0.9 * (AMP) + OFFSET)][0]
+
+# print(t2-t1)
+
 square_input_str = f"static int32_t square_input[] = {{{', '.join(map(str, u_square.astype(int)))}}};\n"
 square_output_str = f"static int32_t square_expected_output[] = {{{', '.join(map(str, y_square))}}};\n\n"
+
+
+
+K  = 4.0 
+Ti = 0.04
+Td = 0.005
+pid = cnt.tf([K*Td, K,K/Ti], [1, 0])
+
+pid_sys  = cnt.feedback(pid, 1)
+hz_1 = cnt.c2d(pid_sys, h, 'zoh')
+numz_1, denz_1 = cnt.tfdata(hz_1)
+
+numz_1 = numz_1[0][0]
+denz_1 = denz_1[0][0]
+
+y_sys = [0]
+# numz_1 = [int(0.41666059 * (1<<15)), int(-0.54398644 * (1<<15)), int(0.15342283 * (1<<15))]
+# denz_1 = [int(1.0 * (1<<15)), int(-1.8569365254781038 * (1<<15)), int(1.0826991410679994 * (1<<15)), int(-0.19966564006790186 * (1<<15))]
+numz_1 = (numz_1 * (1 << 15)).astype(int)
+denz_1 = (denz_1 * (1 << 15)).astype(int)
+print(numz_1)
+print(denz_1)
+reset_recurrence2(numz_1, denz_1)
+reset_recurrence(NUM,DEN)
+y_pid = []
+for i, value in enumerate(u_square):
+    error = 2*int(value)-int(y_sys[i])
+    pid_output = recurrence_function2(error, numz_1, denz_1)
+    y_pid.append(pid_output)
+    system_output = recurrence_function(pid_output, NUM, DEN)
+    y_sys.append(system_output)
+# for value in u_square:
+#     y_sys.append(recurrence_function2(int(value),numz_1,denz_1))
+
+# Convertir a numpy array para facilitar el ploteo
+y_sys = np.array(y_sys[1:])
 
 # Encabezado del archivo
 header_str = '''/**
@@ -152,9 +246,24 @@ plt.grid(True)
 plt.legend()
 plt.show()
 
-plt.plot(t_square, y_square, label="output")
-plt.plot(t_square, u_square, label="input")
+plt.plot(t_square, y_square, label="output",color=CB_color_cycle[0])
+plt.plot(t_square, u_square, label="input",color=CB_color_cycle[1])
+plt.plot(t_90, u_90, label="i_90", linestyle="--",color=CB_color_cycle[2])
+plt.plot(t_10, u_10, label="i_10", linestyle="--",color=CB_color_cycle[2])
 plt.title("Output of Recurrence Function")
+plt.xlabel("Time")
+plt.ylabel("Output (Q15)")
+plt.grid(True)
+plt.legend()
+plt.show()
+
+plt.plot(t_square, y_square, label="output",color=CB_color_cycle[0])
+plt.plot(t_square, u_square, label="input",color=CB_color_cycle[1])
+plt.plot(t_square, y_sys, label="pid_sys",color=CB_color_cycle[3])
+# plt.plot(t_square, y_pid, label="pid",color=CB_color_cycle[4])
+plt.plot(t_90, u_90, label="i_90", linestyle="--",color=CB_color_cycle[2])
+plt.plot(t_10, u_10, label="i_10", linestyle="--",color=CB_color_cycle[2])
+plt.title("Output of Recurrence Function with pid")
 plt.xlabel("Time")
 plt.ylabel("Output (Q15)")
 plt.grid(True)
