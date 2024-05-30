@@ -34,10 +34,9 @@
 // Coeficientes del denominador en Q15
 #define DEN0 Q15_SCALE(1)
 #define DEN1 Q15_SCALE(-1.21587686)
-#define DEN2 Q15_SCALE(0.2865048 )
+#define DEN2 Q15_SCALE(0.2865048)
 
 /*========= [PRIVATE DATA TYPES] ===============================================*/
-
 
 
 /*========= [TASK DECLARATIONS] ================================================*/
@@ -99,13 +98,12 @@ void CONTROLLER_PID(void *per) {
     }
 }
 
-
 /*========= [PRIVATE FUNCTION IMPLEMENTATION] ==================================*/
 
 STATIC int32_t PidRecurrenceFunction(int32_t input) {
 // Buffers para mantener el estado
-    static int32_t input_buffer[NUM_SIZE] = {[0 ... NUM_SIZE - 1] = 0};
-    static int32_t output_buffer[DEN_SIZE - 1] = {[0 ... DEN_SIZE - 2] = 0};
+    static int32_t input_buffer[NUM_SIZE] = {[0 ... (NUM_SIZE - 1)] = 0};
+    static int32_t output_buffer[DEN_SIZE - 1] = {[0 ... (DEN_SIZE - 2)] = 0};
     // Desplazar valores en el buffer de entrada
     for (int i = NUM_SIZE - 1; i > 0; --i) {
         input_buffer[i] = input_buffer[i - 1];
@@ -130,4 +128,5 @@ STATIC int32_t PidRecurrenceFunction(int32_t input) {
 
     return output;
 }
+
 /*========= [INTERRUPT FUNCTION IMPLEMENTATION] ================================*/
