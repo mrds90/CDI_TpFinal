@@ -30,6 +30,8 @@ extern "C" {
 
 void CONTROLLER_SquareOpenLoop(void *freq);
 
+void CONTROLLER_PID(void *per);
+
 #ifdef  __cplusplus
 }
 

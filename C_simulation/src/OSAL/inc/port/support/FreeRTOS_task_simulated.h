@@ -58,6 +58,8 @@ extern char *simulated_task_name;   /**< Name of the simulated task */
 
 extern bool_t task_create_success;  /**< Flag indicating the success of task creation */
 
+TESTED_VARIABLE uint32_t so_tick_count;
+
 /*========= [PUBLIC FUNCTION DECLARATIONS] =====================================*/
 
 /**

@@ -26,7 +26,9 @@ extern "C" {
 
 /*========= [PUBLIC FUNCTION DECLARATIONS] =====================================*/
 
-void INTERFACE_DACWrite(uint16_t output_dac_mv);
+void INTERFACE_DACWriteMv(uint16_t output_dac_mv);
+
+void INTERFACE_DACWrite(uint32_t q15);
 
 uint16_t INTERFACE_ADCRead(void);
 

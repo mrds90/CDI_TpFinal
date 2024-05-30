@@ -12,7 +12,7 @@
 
 #include "real_world.h"
 #include "osal_task.h"
-
+#include <string.h>
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
 
 #define NUM_SIZE 2
@@ -32,6 +32,8 @@
 typedef struct {
     int32_t input;
     int32_t output;
+    int32_t input_buffer[NUM_SIZE];
+    int32_t output_buffer[DEN_SIZE];
 } real_world_t;
 
 /*========= [TASK DECLARATIONS] ================================================*/
@@ -48,8 +50,11 @@ STATIC int32_t RecurrenceFunction(int32_t input);
 
 STATIC real_world_t real_world = {
     .input = 0,
-    .output = 0
+    .output = 0,
+    .input_buffer = {[0 ... NUM_SIZE - 1] = 0},
+    .output_buffer = {[0 ... DEN_SIZE - 2] = 0},
 };
+
 
 /*========= [STATE FUNCTION POINTERS] ==========================================*/
 
@@ -71,6 +76,13 @@ int32_t REAL_WORLD_Output(void) {
     return real_world.output;
 }
 
+void REAL_WORLD_Reset(void) {
+    memset(real_world.output_buffer, 0, sizeof(real_world.output_buffer));
+    memset(real_world.input_buffer, 0, sizeof(real_world.input_buffer));
+    real_world.output = 0;
+    real_world.input = 0;
+};
+
 /*========= [PRIVATE FUNCTION IMPLEMENTATION] ==================================*/
 
 STATIC void TaskRealWorld(void *not_used) {
@@ -85,29 +97,26 @@ STATIC void TaskRealWorld(void *not_used) {
 
 // Función de recurrencia en tiempo real
 STATIC int32_t RecurrenceFunction(int32_t input) {
-// Buffers para mantener el estado
-    static int32_t input_buffer[NUM_SIZE] = {[0 ... NUM_SIZE - 1] = 0};
-    static int32_t output_buffer[DEN_SIZE - 1] = {[0 ... DEN_SIZE - 2] = 0};
     // Desplazar valores en el buffer de entrada
     for (int i = NUM_SIZE - 1; i > 0; --i) {
-        input_buffer[i] = input_buffer[i - 1];
+        real_world.input_buffer[i] = real_world.input_buffer[i - 1];
     }
-    input_buffer[0] = input;
+    real_world.input_buffer[0] = input;
 
     // Calcular la parte del numerador
     int32_t output = 0;
-    output += (NUM0 * input_buffer[0]) >> 15;
-    output += (NUM1 * input_buffer[1]) >> 15;
+    output += (NUM0 * real_world.input_buffer[0]) >> 15;
+    output += (NUM1 * real_world.input_buffer[1]) >> 15;
 
     // Calcular la parte del denominador
-    output -= (DEN1 * output_buffer[0]) >> 15;
-    output -= (DEN2 * output_buffer[1]) >> 15;
+    output -= (DEN1 * real_world.output_buffer[0]) >> 15;
+    output -= (DEN2 * real_world.output_buffer[1]) >> 15;
 
     // Desplazar valores en el buffer de salida
     for (int i = DEN_SIZE - 2; i > 0; --i) {
-        output_buffer[i] = output_buffer[i - 1];
+        real_world.output_buffer[i] = real_world.output_buffer[i - 1];
     }
-    output_buffer[0] = output;
+    real_world.output_buffer[0] = output;
 
     return output;
 }

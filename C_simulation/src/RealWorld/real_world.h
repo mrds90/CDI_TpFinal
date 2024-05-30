@@ -34,6 +34,7 @@ void REAL_WORLD_Input(int32_t value);
 
 int32_t REAL_WORLD_Output(void);
 
+void REAL_WORLD_Reset(void);
 
 #ifdef  __cplusplus
 }

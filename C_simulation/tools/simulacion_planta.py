@@ -165,10 +165,11 @@ denz_1 = denz_1[0][0]
 y_sys = [0]
 # numz_1 = [int(0.41666059 * (1<<15)), int(-0.54398644 * (1<<15)), int(0.15342283 * (1<<15))]
 # denz_1 = [int(1.0 * (1<<15)), int(-1.8569365254781038 * (1<<15)), int(1.0826991410679994 * (1<<15)), int(-0.19966564006790186 * (1<<15))]
-numz_1 = (numz_1 * (1 << 15)).astype(int)
-denz_1 = (denz_1 * (1 << 15)).astype(int)
 print(numz_1)
 print(denz_1)
+
+numz_1 = (numz_1 * (1 << 15)).astype(int)
+denz_1 = (denz_1 * (1 << 15)).astype(int)
 reset_recurrence2(numz_1, denz_1)
 reset_recurrence(NUM,DEN)
 y_pid = []
@@ -184,6 +185,8 @@ for i, value in enumerate(u_square):
 # Convertir a numpy array para facilitar el ploteo
 y_sys = np.array(y_sys[1:])
 
+pid_output_str = f"static int32_t pid_expected_output[] = {{{', '.join(map(str, y_pid))}}};\n"
+cont_sys_output_str = f"static int32_t controlled_expected_output[] = {{{', '.join(map(str, y_sys))}}};\n\n"
 # Encabezado del archivo
 header_str = '''/**
  * @file expected_output.h
@@ -234,6 +237,10 @@ with open(expected_output_path, "w") as f:
     f.write(step_output_str)
     f.write(square_input_str)
     f.write(square_output_str)
+    f.write(pid_output_str)
+    f.write(cont_sys_output_str)
+
+    
     f.write(footer_str)
 
 # Graficar la salida

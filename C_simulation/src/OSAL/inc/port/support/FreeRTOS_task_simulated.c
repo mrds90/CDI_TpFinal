@@ -28,7 +28,7 @@ bool_t task_create_success = TRUE; /**< Indicates whether task creation will be 
 
 TaskHandle_t *handler_to_save = NULL; /**< Pointer to save the created task handler. */
 
-uint32_t count = 0; /**< Counter used for simulated tick count. */
+uint32_t so_tick_count = 0; /**< Counter used for simulated tick count. */
 
 char *simulated_task_name; /**< Simulated task name. */
 
@@ -53,15 +53,15 @@ TaskHandle_t __attribute__((weak)) xTaskCreateStatic(TaskFunction_t pxTaskCode, 
 }
 
 TickType_t __attribute__((weak)) xTaskGetTickCount(void) {
-    return count;
+    return so_tick_count;
 }
 
 void __attribute__((weak)) vTaskDelay(TickType_t delay_ticks) {
-    count += delay_ticks;
+    so_tick_count += delay_ticks;
 }
 
 void __attribute__((weak)) vTaskDelayUntil(TickType_t *previous_time, TickType_t delay_ticks) {
-    count += delay_ticks;
+    so_tick_count += delay_ticks;
 }
 
 char *__attribute__((weak)) pcTaskGetTaskName(TaskHandle_t xTaskToQuery) {
