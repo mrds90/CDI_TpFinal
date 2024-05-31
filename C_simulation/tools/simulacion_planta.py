@@ -15,6 +15,18 @@ CB_color_cycle = (
     "#dede00",
 )
 
+def calculate_rise_time(signal, time,ref_value=1):
+    # Find the index where the signal first crosses the start threshold
+    start_index = np.argmax(signal >= 0.1*ref_value)
+    
+    # Find the index where the signal crosses the end threshold
+    end_index = np.argmax(signal >= 0.9*ref_value)
+    
+    # Calculate the rise time as the difference between the two indices, multiplied by the time step
+    rise_time = time[end_index] - time[start_index]
+    
+    return rise_time
+
 def SquareFunc(fs: float, f0: float, amp: float = 1.0, samples: int = 100) -> [np.ndarray, np.ndarray]:
     t_step = np.arange(0, samples) / fs
     square = (amp * np.sign(np.sin(2 * np.pi * f0 * t_step)))
@@ -31,7 +43,7 @@ expected_output_path = os.path.join(expected_output_dir, "expected_output.h")
 
 r_1 = 10e3
 c_1 = 1e-6
-r_2 = 1e3 #valor particular de la planta
+r_2 = 18e3 #valor particular de la planta
 c_2 = 1e-6
 
 s = cnt.tf('s')
@@ -49,11 +61,12 @@ DEN2 = denz_planta[2]
 NUM0 = numz_planta[0]
 NUM1 = numz_planta[1]
 
-# DEN0 = 1.876489
-# DEN1 = -1.265066
-# DEN2 = 0.386865
-# NUM0 = 0.003344
-# NUM1 = 0.023523
+# DEN0 = 1.882072
+# DEN1 = -1.273800
+# DEN2 = 0.390088
+# NUM0 = 0.003235
+# NUM1 = 0.023929
+
 # Definición de coeficientes en Q15
 NUM = [int(NUM0 * (1 << 15)), int(NUM1 * (1 << 15))]
 DEN = [int(DEN0 * (1 << 15)), int(DEN1 * (1 << 15)), int(DEN2 * (1 << 15))]
@@ -170,15 +183,62 @@ for value in u_square:
 # Convertir a numpy array para facilitar el ploteo
 y_square = np.array(y_square)
 
-t1 = t_square[y_square > (0.1 * (AMP) + OFFSET)][0]
-t2 = t_square[y_square > (0.9 * (AMP) + OFFSET)][0]
+# t1 = t_square[y_square > (0.1 * (AMP) + OFFSET)][0]
+# t2 = t_square[y_square > (0.9 * (AMP) + OFFSET)][0]
 
-print(t2-t1)
+# print(t2-t1)
 
 square_input_str = f"static int32_t square_input[] = {{{', '.join(map(str, u_square.astype(int)))}}};\n"
 square_output_str = f"static int32_t square_expected_output[] = {{{', '.join(map(str, y_square))}}};\n\n"
 
 
+## PID
+t = np.arange(0, 2, h)
+u = np.ones(len(t))
+t_ol, y_ol = cnt.forced_response(hs_1, t, u)
+x1 = t_ol[y_ol> (0.1 * y_ol.max())][0]
+x2 = t_ol[y_ol> (0.9 * y_ol.max())][0]
+y1 = y_ol[y_ol> (0.1 * y_ol.max())][0]
+y2 = y_ol[y_ol> (0.9 * y_ol.max())][0]
+
+print(x2 - x1) # Tiempo de subida
+# Ecuación de la recta
+t1 = np.linspace(0, x2, 5000)
+y_r = ((y2-y1)/(x2-x1))*(t1-x1)+y1
+
+L = x1
+T = x2-x1
+# A = B = 1
+
+# PID con Z-N
+K  = 1.2*T/L
+Ti = 2*L
+Td = 0.5*L
+
+print(K,Ti,Td)
+
+pid = cnt.tf([K*Td, K, K/Ti], [1, 0])
+
+print("coeficientes del PID:")
+print(pid)
+cl_sys  = cnt.feedback(hs_1*pid, 1)
+t_cl, y_cl = cnt.forced_response(cl_sys, t, u)
+
+rt = calculate_rise_time(y_ol,t_ol)
+print('Tiempo de subida en LA:',rt)
+print('Tiempo de subida deseado:',0.7*rt)
+
+rt = calculate_rise_time(t_cl,y_cl)
+print('Tiempo de subida en con PID:',rt)
+print('Sobrepico: ',max(y_cl))
+
+plt.grid(color='k', linestyle='-', linewidth=0.2)
+plt.plot(t_ol, y_ol, 'r--', label='Out_ol')
+plt.plot(t_cl, y_cl, 'b-', label='Out_cl')
+plt.legend(loc='best')
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.show()
 
 K  = 4.0 
 Ti = 0.04
@@ -300,8 +360,8 @@ plt.plot(t_square, y_sys, label="pid_sys",color=CB_color_cycle[3])
 # plt.plot(t_square, y_pid, label="pid",color=CB_color_cycle[4])
 plt.plot(t_90, u_90, label="i_90", linestyle="--",color=CB_color_cycle[2])
 plt.plot(t_10, u_10, label="i_10", linestyle="--",color=CB_color_cycle[2])
-plt.title("Output of Recurrence Function with pid")
-plt.xlabel("Time")
+plt.title("Respuesta a la Cuadrada con pid")
+plt.xlabel("Tiempo [Seg]")
 plt.ylabel("Output (Q15)")
 plt.grid(True)
 plt.legend()

@@ -10,7 +10,6 @@
 #define NUM0 (0.04976845)
 #define NUM1 (0.03505064)
 
-// Coeficientes del denominador en Q15
 #define DEN0 (1.0)
 #define DEN1 (-1.2631799459800208)
 #define DEN2 (0.34799904079225535)  
