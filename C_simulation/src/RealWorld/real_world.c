@@ -61,12 +61,13 @@ STATIC real_world_t real_world = {
 /*========= [PUBLIC FUNCTION IMPLEMENTATION] ===================================*/
 
 void REAL_WORLD_Init(void) {
-    static osal_task_t real_world_task;
+    static osal_task_t real_world_task = {.name = "real_world"};
     static osal_stack_holder_t real_world_stack[STACK_SIZE_REAL_WORLD];
     static osal_task_holder_t real_world_holder;
     OSAL_TASK_LoadStruct(&real_world_task, real_world_stack, &real_world_holder, STACK_SIZE_REAL_WORLD);
     OSAL_TASK_Create(&real_world_task, TaskRealWorld, NULL, TASK_PRIORITY_NORMAL);
 }
+
 
 void REAL_WORLD_Input(int32_t value) {
     real_world.input = value;

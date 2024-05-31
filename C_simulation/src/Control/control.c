@@ -12,11 +12,17 @@
 
 #include "control.h"
 #include "interface.h"
-#include "osal_task.h"
+#include "task_manager.h"
 #include <stdio.h>
 #include <string.h>
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
+
+
+#define OPEN_LOOP_CONTROL   1
+#define PID_CONTROL         2
+
+#define CONTROL_TASK OPEN_LOOP_CONTROL
 
 #define V_TO_MV(x)  ((x) * 1000)
 #define N_SAMPLES (1 << 8)
@@ -41,6 +47,10 @@
 
 /*========= [TASK DECLARATIONS] ================================================*/
 
+STATIC void CONTROLLER_SquareOpenLoop(void *per);
+
+STATIC void CONTROLLER_PID(void *per);
+
 /*========= [PRIVATE FUNCTION DECLARATIONS] ====================================*/
 
 STATIC int32_t PidRecurrenceFunction(int32_t input);
@@ -55,7 +65,21 @@ STATIC uint16_t input_mv = 0;
 
 /*========= [PUBLIC FUNCTION IMPLEMENTATION] ===================================*/
 
-void CONTROLLER_SquareOpenLoop(void *per) {
+void CONTROLLER_Init(void) {
+    static uint8_t period = PERIODO_SQUARE;
+    static osal_task_t controller_task = {.name = "controller"};
+    static osal_stack_holder_t controller_stack[STACK_SIZE_CONTROLLER];
+    static osal_task_holder_t controller_holder;
+    OSAL_TASK_LoadStruct(&controller_task, controller_stack, &controller_holder, STACK_SIZE_CONTROLLER);
+    #if (CONTROL_TASK == OPEN_LOOP_CONTROL)
+    OSAL_TASK_Create(&controller_task, CONTROLLER_SquareOpenLoop, (void *)(&period), TASK_PRIORITY_NORMAL);
+    #elif (CONTROL_TASK == PID_CONTROL)
+    OSAL_TASK_Create(&controller_task, CONTROLLER_PID, (void *)(&period), TASK_PRIORITY_NORMAL);
+    #endif
+
+}
+
+STATIC void CONTROLLER_SquareOpenLoop(void *per) {
     uint8_t period = *((uint8_t *) per);
     static const uint16_t output[2] = {V_TO_MV(2), V_TO_MV(1)};
     static uint8_t out_index = 0;
@@ -71,7 +95,7 @@ void CONTROLLER_SquareOpenLoop(void *per) {
     }
 }
 
-void CONTROLLER_PID(void *per) {
+STATIC void CONTROLLER_PID(void *per) {
     uint8_t period = *((uint8_t *) per);
 
     static const uint16_t r[2] = {Q15_SCALE(V_TO_MV(2)) / 3300, Q15_SCALE(V_TO_MV(1)) / 3300};

@@ -42,6 +42,10 @@ typedef struct {
 
 /*========= [PRIVATE FUNCTION DECLARATIONS] ====================================*/
 
+void CONTROLLER_SquareOpenLoop(void *per);
+
+void CONTROLLER_PID(void *per);
+
 int32_t RecurrenceFunction(int32_t input);
 
 void TaskRealWorld(void *not_used);

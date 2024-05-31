@@ -22,21 +22,18 @@ extern "C"
 #include <stdint.h>
 
 typedef uint8_t bool_t;
+#ifndef FALSE
 #define FALSE   0
+#endif
+#ifndef TRUE
 #define TRUE    0xFF
+#endif
 
 #define MAX_INT16                   0x7FFF
 #define MIN_INT16                   0x8000
 
 #define MAX_INT32                   0x7FFFFFFF
 #define MIN_INT32                   0x80000000
-
-typedef enum {
-    CLEAR,
-    SET,
-
-    BIT_QTY,
-} bit_t;
 
 /**
  * @brief Format of callback method

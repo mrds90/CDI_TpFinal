@@ -28,9 +28,7 @@ extern "C" {
 
 /*========= [PUBLIC FUNCTION DECLARATIONS] =====================================*/
 
-void CONTROLLER_SquareOpenLoop(void *freq);
-
-void CONTROLLER_PID(void *per);
+void CONTROLLER_Init(void);
 
 #ifdef  __cplusplus
 }

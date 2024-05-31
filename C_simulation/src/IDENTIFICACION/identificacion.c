@@ -11,12 +11,20 @@
 /*========= [DEPENDENCIES] =====================================================*/
 
 #include "identificacion.h"
+#include "interface.h"
 #include <string.h>
+#include "sapi.h"
+#include "task_manager.h"
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
 
 #define ORDER 2
 #define MAX_SAMPLES 200
+
+#define DATA_SIZE 100
+
+#define A_SIZE 3
+#define B_SIZE 2
 
 /*========= [PRIVATE DATA TYPES] ===============================================*/
 
@@ -24,157 +32,173 @@
 
 /*========= [PRIVATE FUNCTION DECLARATIONS] ====================================*/
 
-STATIC void matrix_multiply(int16_t *A, int16_t *B, int16_t *C, int m, int n, int p);
-STATIC void matrix_transpose(int16_t *A, int16_t *B, int m, int n);
-STATIC bool_t matrix_inverse(int16_t *A, int16_t *A_inv, int n);
+void generate_prbs_signal(double *u, int size);
+
+void IdentificacionTask(void* not_used);
+
+void acquire_output_signal(double *u, double *y, int size);
+
+void invert_matrix(double A[5][5], double A_inv[5][5]);
+
+void least_squares(double *u, double *y, int size, double *a, double *b);
+
+void IdentificacionTask(void* not_used);
 
 /*========= [INTERRUPT FUNCTION DECLARATIONS] ==================================*/
 
 /*========= [LOCAL VARIABLES] ==================================================*/
 
+STATIC double u[DATA_SIZE]; // Entrada
+STATIC double y[DATA_SIZE]; // Salida
+
 /*========= [STATE FUNCTION POINTERS] ==========================================*/
 
 /*========= [PUBLIC FUNCTION IMPLEMENTATION] ===================================*/
 
-void Identify_SystemParameters(int n, int16_t *u, int16_t *y, int len, int16_t *Theta) {
-    int i, j;
-    int num_filas = len - n;
-    int num_columnas = 2 * n + 1;
-
-    // Segmento de y desde el índice n hasta el final
-    int16_t *Y = y + n;
-
-    // Inicializa la matriz Phi con ceros
-    static int16_t Phi[(MAX_SAMPLES - ORDER) * (2 * ORDER + 1)] = {0};
-
-    // Construcción de Phi
-    for (i = 0; i < num_filas; i++) {
-        for (j = 0; j < n; j++) {
-            Phi[i * num_columnas + j] = y[n + i - 1 - j];
-        }
-        for (j = 0; j <= n; j++) {
-            Phi[i * num_columnas + (n + j)] = u[n + i - j];
-        }
-    }
-
-    // Transponer Phi
-    static int16_t Phi_T[(2 * ORDER + 1) * (MAX_SAMPLES - ORDER)] = {0};
-    matrix_transpose(Phi, Phi_T, num_filas, num_columnas);
-
-    // Calcula Phi' * Phi
-    static int16_t PhiT_Phi[(2 * ORDER + 1) * (2 * ORDER + 1)] = {0};
-    matrix_multiply(Phi_T, Phi, PhiT_Phi, num_columnas, num_filas, num_columnas);
-
-    // Calcula (Phi' * Phi)^-1
-    static int16_t PhiT_Phi_inv[(2 * ORDER + 1) * (2 * ORDER + 1)] = {0};
-    if (!matrix_inverse(PhiT_Phi, PhiT_Phi_inv, num_columnas)) {
-        // Manejar el caso donde la matriz no es invertible
-        return;
-    }
-
-    // Calcula (Phi' * Phi)^-1 * Phi'
-    static int16_t Temp[(2 * ORDER + 1) * MAX_SAMPLES] = {0};
-    matrix_multiply(PhiT_Phi_inv, Phi_T, Temp, num_columnas, num_columnas, num_filas);
-
-    // Calcula Theta = (Phi' * Phi)^-1 * Phi' * Y
-    for (i = 0; i < num_columnas; i++) {
-        Theta[i] = 0;
-        for (j = 0; j < num_filas; j++) {
-            Theta[i] += (Temp[i * num_filas + j] * Y[j]) >> 15; // Ajuste para Q15
-        }
-    }
+void IDENTIFICACION_Init(void* not_used) {
+    static osal_task_t identificacion_task = {.name = "identificacion"};
+    static osal_stack_holder_t identificacion_stack[STACK_SIZE_IDENTIFICACION];
+    static osal_task_holder_t identificacion_holder;
+    OSAL_TASK_LoadStruct(&identificacion_task, identificacion_stack, &identificacion_holder, STACK_SIZE_IDENTIFICACION);
+    OSAL_TASK_Create(&identificacion_task, IdentificacionTask, NULL, TASK_PRIORITY_NORMAL);
 }
+
+void IdentificacionTask(void* not_used) {
+    double a[3], b[2];
+
+    generate_prbs_signal(u, DATA_SIZE);
+    acquire_output_signal(u, y, DATA_SIZE);
+    least_squares(u, y, DATA_SIZE, a, b);
+    
+    static chart str[150];
+    sprintf(str, "Identified system parameters:\n");
+    uartWriteString(UART_USB, str);
+    sprintf(str, "a1: %f, a2: %f, b2: %f\n", a[0], a[1], a[2]);
+    uartWriteString(UART_USB, str);
+    sprintf(str, "b0: %f, b1: %f", b[0], b[1]);
+    uartWriteString(UART_USB, str);
+
+    return 0;
+}
+
 
 /*========= [PRIVATE FUNCTION IMPLEMENTATION] ==================================*/
 
-// Función para transponer una matriz
-STATIC void matrix_transpose(int16_t *A, int16_t *B, int m, int n) {
-    int i, j;
-    for (i = 0; i < m; i++) {
-        for (j = 0; j < n; j++) {
-            B[j * m + i] = A[i * n + j];
-        }
+void generate_prbs_signal(double *u, int size) {
+    uint16_t lfsr = 0xACE1u; // Estado inicial no nulo
+    uint16_t bit;
+
+    for (int i = 0; i < size; i++) {
+        // Generar el bit pseudo-aleatorio
+        bit = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
+        lfsr = (lfsr >> 1) | (bit << 15);
+
+        // Mapear el valor del PRBS a +1 o -1
+        u[i] = (lfsr & 1) ? 1.0 : 2.0;
     }
 }
 
-// Función para multiplicar dos matrices
-STATIC void matrix_multiply(int16_t *A, int16_t *B, int16_t *C, int m, int n, int p) {
-    int i, j, k;
-    for (i = 0; i < m; i++) {
-        for (j = 0; j < p; j++) {
-            C[i * p + j] = 0;
-            for (k = 0; k < n; k++) {
-                C[i * p + j] += (A[i * n + k] * B[k * p + j]) >> 15; // Ajuste para Q15
-            }
-        }
+void acquire_output_signal(double *u, double *y, int size) {
+    for (int i = 0; i < size; i++) {
+        INTERFACE_DACWriteMv(u[i]*1000);
+        y[i] = (float)(INTERFACE_ADCRead()) / 1000.0;
     }
 }
 
-// Función para invertir una matriz cuadrada (utilizando un método simple, no recomendado para producción)
-STATIC bool_t matrix_inverse(int16_t *A, int16_t *A_inv, int n) {
+// Función para invertir una matriz 5x5 (Gauss-Jordan)
+void invert_matrix(double A[5][5], double A_inv[5][5]) {
     int i, j, k;
-    int32_t temp;
+    double ratio, a;
 
-    // Crear una matriz identidad de tamaño nxn
-    int16_t identity[n * n];
-    memset(identity, 0, n * n * sizeof(int16_t));
-    for (i = 0; i < n; i++) {
-        identity[i * n + i] = 1 << 15; // 1 en Q15
+    // Inicializar A_inv como matriz identidad
+    for (i = 0; i < 5; i++) {
+        for (j = 0; j < 5; j++) {
+            A_inv[i][j] = (i == j) ? 1.0 : 0.0;
+        }
     }
 
-    // Copiar A a A_inv para trabajar en la matriz A_inv
-    memcpy(A_inv, A, n * n * sizeof(int16_t));
-
-    // Aplicar el método de Gauss-Jordan
-    for (i = 0; i < n; i++) {
-        // Asegurar que el elemento diagonal sea diferente de cero
-        if (A_inv[i * n + i] == 0) {
-            // Encontrar una fila para intercambiar
-            bool_t found_nonzero = FALSE;
-            for (k = i + 1; k < n; k++) {
-                if (A_inv[k * n + i] != 0) {
-                    for (j = 0; j < n; j++) {
-                        temp = A_inv[i * n + j];
-                        A_inv[i * n + j] = A_inv[k * n + j];
-                        A_inv[k * n + j] = temp;
-
-                        temp = identity[i * n + j];
-                        identity[i * n + j] = identity[k * n + j];
-                        identity[k * n + j] = temp;
-                    }
-                    found_nonzero = TRUE;
-                    break;
-                }
-            }
-            // Si no se encuentra una fila adecuada, la matriz no es invertible
-            if (!found_nonzero) {
-                return FALSE; // Indicar que la matriz no es invertible
-            }
+    // Aplicar Gauss-Jordan
+    for (i = 0; i < 5; i++) {
+        a = A[i][i];
+        for (j = 0; j < 5; j++) {
+            A[i][j] /= a;
+            A_inv[i][j] /= a;
         }
-
-        // Escalar la fila para hacer que el elemento diagonal sea 1
-        temp = A_inv[i * n + i];
-        for (j = 0; j < n; j++) {
-            A_inv[i * n + j] = (A_inv[i * n + j] << 15) / temp;
-            identity[i * n + j] = (identity[i * n + j] << 15) / temp;
-        }
-
-        // Hacer ceros los elementos sobre y bajo el pivote
-        for (k = 0; k < n; k++) {
+        for (k = 0; k < 5; k++) {
             if (k != i) {
-                temp = A_inv[k * n + i];
-                for (j = 0; j < n; j++) {
-                    A_inv[k * n + j] -= (A_inv[i * n + j] * temp) >> 15;
-                    identity[k * n + j] -= (identity[i * n + j] * temp) >> 15;
+                ratio = A[k][i];
+                for (j = 0; j < 5; j++) {
+                    A[k][j] -= ratio * A[i][j];
+                    A_inv[k][j] -= ratio * A_inv[i][j];
                 }
             }
         }
     }
+}
 
-    // Copiar el resultado en A_inv
-    memcpy(A_inv, identity, n * n * sizeof(int16_t));
-    return TRUE; // Indicar que la matriz fue invertida con éxito
+// Función para resolver el sistema de ecuaciones utilizando cuadrados mínimos
+void least_squares(double *u, double *y, int size, double *a, double *b) {
+    double X[DATA_SIZE][5]; // Matriz de diseño
+    double Y[DATA_SIZE];    // Vector de salida
+    double Xt[5][DATA_SIZE]; // Transpuesta de X
+    double XtX[5][5];       // Xt * X
+    double XtY[5];          // Xt * Y
+    double invXtX[5][5];    // Inversa de XtX
+
+    // Llenar la matriz de diseño y el vector de salida
+    for (int i = 3; i < size; i++) {
+        X[i][0] = y[i - 1];
+        X[i][1] = y[i - 2];
+        X[i][2] = y[i - 3];
+        X[i][3] = u[i];
+        X[i][4] = u[i - 1];
+        Y[i] = y[i];
+    }
+
+    // Calcular Xt
+    for (int i = 0; i < 5; i++) {
+        for (int j = 3; j < size; j++) {
+            Xt[i][j] = X[j][i];
+        }
+    }
+
+    // Calcular XtX
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            XtX[i][j] = 0;
+            for (int k = 3; k < size; k++) {
+                XtX[i][j] += Xt[i][k] * X[k][j];
+            }
+        }
+    }
+
+    // Calcular XtY
+    for (int i = 0; i < 5; i++) {
+        XtY[i] = 0;
+        for (int k = 3; k < size; k++) {
+            XtY[i] += Xt[i][k] * Y[k];
+        }
+    }
+
+    // Invertir XtX
+    invert_matrix(XtX, invXtX);
+
+    // Resolver para los coeficientes a y b
+    double result[5];
+    for (int i = 0; i < 5; i++) {
+        result[i] = 0;
+        for (int j = 0; j < 5; j++) {
+            result[i] += invXtX[i][j] * XtY[j];
+        }
+    }
+
+    a[0] = result[0];
+    a[1] = result[1];
+    a[2] = result[2];
+    b[0] = result[3];
+    b[1] = result[4];
 }
 
 /*========= [INTERRUPT FUNCTION IMPLEMENTATION] ================================*/
+
 

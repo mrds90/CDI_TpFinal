@@ -29,11 +29,41 @@ expected_output_dir = os.path.join(current_dir, "../test/support")
 os.makedirs(expected_output_dir, exist_ok=True)  # Crea el directorio si no existe
 expected_output_path = os.path.join(expected_output_dir, "expected_output.h")
 
-# Definición de coeficientes en Q15
-NUM = [int(0.04976845 * (1 << 15)), int(0.03505064 * (1 << 15))]
-DEN = [int(1.0 * (1 << 15)), int(-1.2631799459800208 * (1 << 15)), int(0.34799904079225535 * (1 << 15))]
+r_1 = 10e3
+c_1 = 1e-6
+r_2 = 1e3 #valor particular de la planta
+c_2 = 1e-6
 
+s = cnt.tf('s')
+hs_1 = 1 / ((r_1*c_1*r_2*c_2)*s*s + (r_1*c_1+r_1*c_2+r_2*c_2)*s + 1)
+num_1, den_1 = cnt.tfdata(hs_1)
 h = 0.005
+hz_1 = cnt.c2d(hs_1, h, 'zoh')
+numz_planta, denz_planta = cnt.tfdata(hz_1)
+numz_planta = numz_planta[0][0]
+denz_planta= denz_planta[0][0]
+
+DEN0 = denz_planta[0]
+DEN1 = denz_planta[1]
+DEN2 = denz_planta[2]
+NUM0 = numz_planta[0]
+NUM1 = numz_planta[1]
+
+# DEN0 = 1.876489
+# DEN1 = -1.265066
+# DEN2 = 0.386865
+# NUM0 = 0.003344
+# NUM1 = 0.023523
+# Definición de coeficientes en Q15
+NUM = [int(NUM0 * (1 << 15)), int(NUM1 * (1 << 15))]
+DEN = [int(DEN0 * (1 << 15)), int(DEN1 * (1 << 15)), int(DEN2 * (1 << 15))]
+
+# NUM = [int(0.0041309458458261838 * (1 << 15)), int(0.048339736956908297  * (1 << 15))]
+# DEN = [int(1.8107526733935444 * (1 << 15)), int(-1.1851826187871666 * (1 << 15)), int(0.32212874048961293 * (1 << 15))]
+
+# NUM = [int(0.04976845 * (1 << 15)), int(0.03505064 * (1 << 15))]
+# DEN = [int(1.0 * (1 << 15)), int(-1.2631799459800208 * (1 << 15)), int(0.34799904079225535 * (1 << 15))]
+
 # Buffers para mantener el estado
 input_buffer = [0] * len(NUM)
 output_buffer = [0] * (len(DEN) - 1)
@@ -143,7 +173,7 @@ y_square = np.array(y_square)
 t1 = t_square[y_square > (0.1 * (AMP) + OFFSET)][0]
 t2 = t_square[y_square > (0.9 * (AMP) + OFFSET)][0]
 
-# print(t2-t1)
+print(t2-t1)
 
 square_input_str = f"static int32_t square_input[] = {{{', '.join(map(str, u_square.astype(int)))}}};\n"
 square_output_str = f"static int32_t square_expected_output[] = {{{', '.join(map(str, y_square))}}};\n\n"
@@ -246,9 +276,9 @@ with open(expected_output_path, "w") as f:
 # Graficar la salida
 plt.plot(t_step, y_step, label="output")
 plt.plot(t_step, u_step, label="input")
-plt.title("Output of Recurrence Function")
-plt.xlabel("Time")
-plt.ylabel("Output (Q15)")
+plt.title("Respuesta al escalón")
+plt.xlabel("Tiempo (seg)")
+plt.ylabel("Salida (Q15)")
 plt.grid(True)
 plt.legend()
 plt.show()
@@ -257,9 +287,9 @@ plt.plot(t_square, y_square, label="output",color=CB_color_cycle[0])
 plt.plot(t_square, u_square, label="input",color=CB_color_cycle[1])
 plt.plot(t_90, u_90, label="i_90", linestyle="--",color=CB_color_cycle[2])
 plt.plot(t_10, u_10, label="i_10", linestyle="--",color=CB_color_cycle[2])
-plt.title("Output of Recurrence Function")
-plt.xlabel("Time")
-plt.ylabel("Output (Q15)")
+plt.title("Respuesta a la Cuadrada")
+plt.xlabel("Tiempo (seg)")
+plt.ylabel("Salida (Q15)")
 plt.grid(True)
 plt.legend()
 plt.show()
