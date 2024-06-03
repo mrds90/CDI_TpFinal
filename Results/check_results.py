@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # Configuración del parser de argumentos
 parser = argparse.ArgumentParser(description='Seleccione el archivo CSV a abrir.')
-parser.add_argument('-mode', choices=['OL', 'CL'], default='OL', help='Modo de operación: OL o CL')
+parser.add_argument('-mode', choices=['OL', 'CL', 'PP', 'PPO'], default='OL', help='Modo de operación: OL o CL')
 
 # Parsear los argumentos
 args = parser.parse_args()
@@ -13,8 +13,12 @@ args = parser.parse_args()
 # Seleccionar el archivo CSV según el argumento
 if args.mode == 'OL':
     df = pd.read_csv('results_ol.csv')
-else:
-    df = pd.read_csv('results_cl.csv')
+elif args.mode == 'CL':
+        df = pd.read_csv('results_cl.csv')
+elif args.mode == 'PP':
+        df = pd.read_csv('results_pp.csv')
+elif args.mode == 'PPO':
+        df = pd.read_csv('results_ppo.csv')
 
 output_max = df['output'].max()
 output_min = df['output'].min()
@@ -40,9 +44,9 @@ CB_color_cycle = (
 plt.figure(figsize=(12, 6))
 
 # Gráfico del output respecto al tiempo
-plt.plot(df['time'], df['output'], linestyle='-', color=CB_color_cycle[0], label='Output')
-plt.plot(df['time'], df['pid'], linestyle='-', color=CB_color_cycle[1], label='Pid')
-plt.plot(df['time'], df['input'], linestyle='-', color=CB_color_cycle[2], label='Input')
+plt.plot(df['time'] - df['time'].min(), df['output'], linestyle='-', color=CB_color_cycle[0], label='Output')
+plt.plot(df['time'] - df['time'].min(), df['pid'], linestyle='-', color=CB_color_cycle[1], label='Pid')
+plt.plot(df['time'] - df['time'].min(), df['input'], linestyle='-', color=CB_color_cycle[2], label='Input')
 plt.xlabel('Tiempo [ms]')
 plt.ylabel('Salida [mV]')
 plt.legend()
