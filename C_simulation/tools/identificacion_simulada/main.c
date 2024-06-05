@@ -7,18 +7,22 @@
 #define A_SIZE 3
 #define B_SIZE 2
 
-#define NUM0 (0.04976845)
-#define NUM1 (0.03505064)
+#define Q15_SCALE(x)  (int32_t)((x) * (1 << 15))
 
-#define DEN0 (1.0)
-#define DEN1 (-1.2631799459800208)
-#define DEN2 (0.34799904079225535)
+#define NUM0 Q15_SCALE(0.04976845)
+#define NUM1 Q15_SCALE(0.03505064)
 
+// Coeficientes del denominador en Q15
+#define DEN0 Q15_SCALE(1.0)
+#define DEN1 Q15_SCALE(-1.2631799459800208)
+#define DEN2 Q15_SCALE(0.34799904079225535)
+
+#define MUL_ELEMENTS(a, b) ((a)*(b))
 typedef struct {
-    double input;
-    double output;
-    double input_buffer[B_SIZE];
-    double output_buffer[A_SIZE];
+    int32_t input;
+    int32_t output;
+    int32_t input_buffer[B_SIZE];
+    int32_t output_buffer[A_SIZE];
 } real_world_t;
 
 static real_world_t real_world = {
@@ -28,7 +32,7 @@ static real_world_t real_world = {
     .output_buffer = {[0 ... A_SIZE - 2] = 0},
 };
 
-static double RecurrenceFunction(double input) {
+static int32_t RecurrenceFunction(int32_t input) {
     // Desplazar valores en el buffer de entrada
     for (int i = B_SIZE - 1; i > 0; --i) {
         real_world.input_buffer[i] = real_world.input_buffer[i - 1];
@@ -36,13 +40,13 @@ static double RecurrenceFunction(double input) {
     real_world.input_buffer[0] = input;
 
     // Calcular la parte del numerador
-    double output = 0;
-    output += (NUM0 * real_world.input_buffer[0]) ;
-    output += (NUM1 * real_world.input_buffer[1]) ;
+    int32_t output = 0;
+    output += (NUM0 * real_world.input_buffer[0]) >> 15;
+    output += (NUM1 * real_world.input_buffer[1]) >> 15;
 
     // Calcular la parte del denominador
-    output -= (DEN1 * real_world.output_buffer[0]);
-    output -= (DEN2 * real_world.output_buffer[1]);
+    output -= (DEN1 * real_world.output_buffer[0]) >> 15;
+    output -= (DEN2 * real_world.output_buffer[1]) >> 15;
 
     // Desplazar valores en el buffer de salida
     for (int i = A_SIZE - 2; i > 0; --i) {
@@ -54,25 +58,49 @@ static double RecurrenceFunction(double input) {
 }
 
 
+// static float RecurrenceFunction(float input) {
+//     // Desplazar valores en el buffer de entrada
+//     for (int i = B_SIZE - 1; i > 0; --i) {
+//         real_world.input_buffer[i] = real_world.input_buffer[i - 1];
+//     }
+//     real_world.input_buffer[0] = input;
+
+//     // Calcular la parte del numerador
+//     float output = 0;
+//     output += (NUM0 * real_world.input_buffer[0]) ;
+//     output += (NUM1 * real_world.input_buffer[1]) ;
+
+//     // Calcular la parte del denominador
+//     output -= (DEN1 * real_world.output_buffer[0]);
+//     output -= (DEN2 * real_world.output_buffer[1]);
+
+//     // Desplazar valores en el buffer de salida
+//     for (int i = A_SIZE - 2; i > 0; --i) {
+//         real_world.output_buffer[i] = real_world.output_buffer[i - 1];
+//     }
+//     real_world.output_buffer[0] = output;
+
+//     return output;
+// }
+
+
 // Datos simulados de entrada y salida
-static double u_sys[100] = {0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0};
-// double u[DATA_SIZE];
-static double y_sys[DATA_SIZE]; // Salida
+static float u_sys[100] = {0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0};
+// float u[DATA_SIZE];
+static float y_sys[DATA_SIZE]; // Salida
 
 // Función para multiplicar dos números Q15
-double q15_mult(double a, double b) {
-    return (a * b);
-}
+
 
 // Función para dividir dos números Q15
-double q15_div(double a, double b) {
+float q15_div(float a, float b) {
     // Asegurarse de que no hay división por cero
 
-    return (double)(a / b);
+    return (float)(a / b);
 }
 
 // Función para generar la señal PRBS
-void generate_prbs_signal(double *u, int size) {
+void generate_prbs_signal(float *u, int size) {
     uint32_t lfsr = (1.0); // Estado inicial no nulo
     uint32_t bit;
 
@@ -87,16 +115,16 @@ void generate_prbs_signal(double *u, int size) {
 }
 
 // Función para adquirir la salida del sistema (simulación)
-void AcquireOutputSignal(double *u, double *y, int size) {
+void AcquireOutputSignal(float *u, float *y, int size) {
     for (int i = 0; i < size; i++) {
-        y[i] =  RecurrenceFunction(u[i]);
+        y[i] =  (float)RecurrenceFunction(Q15_SCALE(u[i])) / (1<<15);
     }
 }
 
 // Función para invertir una matriz 5x5 (Gauss-Jordan)
-void InvertMatrix(double A[5][5], double A_inv[5][5]) {
+void InvertMatrix(float A[5][5], float A_inv[5][5]) {
     int i, j, k;
-    double ratio, a;
+    float ratio, a;
 
     // Inicializar A_inv como matriz identidad
     for (i = 0; i < 5; i++) {
@@ -116,8 +144,8 @@ void InvertMatrix(double A[5][5], double A_inv[5][5]) {
             if (k != i) {
                 ratio = A[k][i];
                 for (j = 0; j < 5; j++) {
-                    A[k][j] -= q15_mult(ratio, A[i][j]);
-                    A_inv[k][j] -= q15_mult(ratio, A_inv[i][j]);
+                    A[k][j] -= MUL_ELEMENTS(ratio, A[i][j]);
+                    A_inv[k][j] -= MUL_ELEMENTS(ratio, A_inv[i][j]);
                 }
             }
         }
@@ -125,18 +153,17 @@ void InvertMatrix(double A[5][5], double A_inv[5][5]) {
 }
 
 // Función para resolver el sistema de ecuaciones utilizando cuadrados mínimos
-void LeastSquares(double *u, double *y, int size, double *a, double *b) {
-    double Phi[DATA_SIZE][5] = {
+void LeastSquares(float *u, float *y, int size, float *a, float *b) {
+    float Phi[DATA_SIZE][5] = {
         [0 ... DATA_SIZE -1 ] = {
             [0 ... 4] = 0
         }
     }; // Matriz de diseño
-    double Y[DATA_SIZE] = {[0 ... DATA_SIZE -1 ] = 0};    // Vector de salida
-    double PhiT[5][DATA_SIZE]; // Transpuesta de Phi
-    double PhiTPhi[5][5];       // PhiT * Phi
-    double XtY[5];          // PhiT * Y
-    double invPhiTPhi[5][5];    // Inversa de PhiTPhi
-    double invPhiTPhiPhiT[5][DATA_SIZE] = {
+    float Y[DATA_SIZE] = {[0 ... DATA_SIZE -1 ] = 0};    // Vector de salida
+    float PhiTPhi[5][5];       // PhiT * Phi
+    float XtY[5];          // PhiT * Y
+    float invPhiTPhi[5][5];    // Inversa de PhiTPhi
+    float invPhiTPhiPhiT[5][DATA_SIZE] = {
         [0 ... 4] = {
             [0 ... DATA_SIZE -1 ] = 0
         }
@@ -152,19 +179,12 @@ void LeastSquares(double *u, double *y, int size, double *a, double *b) {
         Y[i - 2] = y[i];
     }
 
-    // Calcular PhiT
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < size; j++) {
-            PhiT[i][j] = Phi[j][i];
-        }
-    }
-
     // Calcular PhiTPhi
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 5; j++) {
             PhiTPhi[i][j] = 0;
             for (int k = 0; k < size; k++) {
-                PhiTPhi[i][j] += q15_mult(PhiT[i][k], Phi[k][j]);
+                PhiTPhi[i][j] += MUL_ELEMENTS(Phi[k][i], Phi[k][j]);
             }
         }
     }
@@ -176,7 +196,7 @@ void LeastSquares(double *u, double *y, int size, double *a, double *b) {
         for (int j = 0; j < size; j++) {
             invPhiTPhiPhiT[i][j] = 0;
             for (int k = 0; k < 5; k++) {
-                invPhiTPhiPhiT[i][j] += q15_mult(invPhiTPhi[i][k], PhiT[k][j]);
+                invPhiTPhiPhiT[i][j] += MUL_ELEMENTS(invPhiTPhi[i][k], Phi[j][k]);
             }
         }
     }
@@ -185,7 +205,7 @@ void LeastSquares(double *u, double *y, int size, double *a, double *b) {
     for (int i = 0; i < 5; i++) {
         XtY[i] = 0;
         for (int j = 0; j < size; j++) {
-            XtY[i] += q15_mult(invPhiTPhiPhiT[i][j], Y[j]);
+            XtY[i] += MUL_ELEMENTS(invPhiTPhiPhiT[i][j], Y[j]);
         }
     }
 
@@ -198,17 +218,28 @@ void LeastSquares(double *u, double *y, int size, double *a, double *b) {
 }
 
 int main() {
-    double a[3], b[2];
+    float a[3], b[2];
 
     // generate_prbs_signal(u, DATA_SIZE);
     AcquireOutputSignal(u_sys, y_sys, DATA_SIZE);
     LeastSquares(u_sys, y_sys, DATA_SIZE, a, b);
 
     printf("System parameters:\n");
-    printf("a0: %f, a1: %f, a2: %f\n", (double)DEN0, (double)DEN1, (double)DEN2);
-    printf("b0: %f, b1: %f\n\n", (double)NUM0, (double)NUM1);
+    printf("a0: %f, a1: %f, a2: %f\n", (float)DEN0 / (1<<15), (float)DEN1 / (1<<15), (float)DEN2 / (1<<15));
+    printf("b0: %f, b1: %f\n\n", (float)NUM0 / (1<<15), (float)NUM1 / (1<<15));
     printf("Identified system parameters:\n");
-    printf("DEN0 = %f\nDEN1 = %f\nDEN2 = %f\n", (double)a[0], (double)a[1], (double)a[2]);
-    printf("NUM0 = %f\nNUM1 = %f\n\n", (double)b[0], (double)b[1]);
+    printf("DEN0 = %f\nDEN1 = %f\nDEN2 = %f\n", (float)a[0], (float)a[1], (float)a[2]);
+    printf("NUM0 = %f\nNUM1 = %f\n\n", (float)b[0], (float)b[1]);
     return 0;
 }
+
+// System parameters:
+// a0: 1.000000, a1: -1.263180, a2: 0.347999
+// b0: 0.049768, b1: 0.035051
+
+// Identified system parameters:
+// DEN0 = 1.000000
+// DEN1 = 1.263180
+// DEN2 = -0.347999
+// NUM0 = 0.049768
+// NUM1 = 0.035051
