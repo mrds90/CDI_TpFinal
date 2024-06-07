@@ -1,0 +1,3 @@
+[submodule "CIAAFirmware"]
+	path = CIAAFirmware
+	url = git@github.com:mrds90/CDI_Final_CIAA.git

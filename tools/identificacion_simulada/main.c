@@ -85,6 +85,7 @@ static int32_t RecurrenceFunction(int32_t input) {
 
 
 // Datos simulados de entrada y salida
+// static float u_sys[100] = {[0 ... 99] = 0};
 static float u_sys[100] = {0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0};
 // float u[DATA_SIZE];
 static float y_sys[DATA_SIZE]; // Salida
@@ -101,7 +102,7 @@ float q15_div(float a, float b) {
 
 // Función para generar la señal PRBS
 void generate_prbs_signal(float *u, int size) {
-    uint32_t lfsr = (1.0); // Estado inicial no nulo
+    uint16_t lfsr = 0xACE1u; // Estado inicial no nulo
     uint32_t bit;
 
     for (int i = 0; i < size; i++) {
@@ -110,14 +111,14 @@ void generate_prbs_signal(float *u, int size) {
         lfsr = (lfsr >> 1) | (bit);
 
         // Mapear el valor del PRBS a +1 o -1
-        u[i] = (lfsr & 1) ? 1.0 : 0;
+        u[i] = (lfsr & 1) ? 1 : 0;
     }
 }
 
 // Función para adquirir la salida del sistema (simulación)
 void AcquireOutputSignal(float *u, float *y, int size) {
     for (int i = 0; i < size; i++) {
-        y[i] =  (float)RecurrenceFunction(Q15_SCALE(u[i])) / (1<<15);
+        y[i] =  (float)RecurrenceFunction(Q15_SCALE(u[i]*1000)/3300) * 3300 / (1<<15) /1000;
     }
 }
 
@@ -211,8 +212,8 @@ void LeastSquares(float *u, float *y, int size, float *a, float *b) {
 
 
     a[0] = 1;
-    a[1] = XtY[0];
-    a[2] = XtY[1];
+    a[1] = -XtY[0];
+    a[2] = -XtY[1];
     b[0] = XtY[2];
     b[1] = XtY[3];
 }
@@ -220,7 +221,7 @@ void LeastSquares(float *u, float *y, int size, float *a, float *b) {
 int main() {
     float a[3], b[2];
 
-    // generate_prbs_signal(u, DATA_SIZE);
+    // generate_prbs_signal(u_sys, DATA_SIZE);
     AcquireOutputSignal(u_sys, y_sys, DATA_SIZE);
     LeastSquares(u_sys, y_sys, DATA_SIZE, a, b);
 

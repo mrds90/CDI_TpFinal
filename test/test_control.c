@@ -66,11 +66,11 @@ void test_SquareOpenLoop(void) {
     TESTED_VARIABLE real_world_t real_world;
     TESTED_VARIABLE uint16_t input_mv;
     for (uint8_t j = 0; j < 5; j++) {
-        CONTROLLER_SquareOpenLoop((void *)(&period));
         if (tick_count != 0) {
             TEST_ASSERT_EQUAL_UINT16((square_expected_output[(tick_count - 1) / 5] * ADC_MAX_MV) >> 15, input_mv);
         }
         for (osal_tick_t i = tick_count; i < tick_count + period * 1000 / 2; i += 5) {
+            CONTROLLER_SquareOpenLoop((void *)(&period));
             TEST_ASSERT_EQUAL_INT32(square_input[i / 5], real_world.input);
             TaskRealWorld(NULL);
             TEST_ASSERT_EQUAL_INT32(square_expected_output[i / 5], REAL_WORLD_Output());
@@ -92,9 +92,9 @@ void test_PID(void) {
             TEST_ASSERT_EQUAL_UINT16((controlled_expected_output[(tick_count - 1) / 5] * ADC_MAX_MV) >> 15, input_mv);
         }
         CONTROLLER_PID((void *)(&period));
-        TEST_ASSERT_INT32_WITHIN(20,pid_expected_output[i / 5], real_world.input);
+        TEST_ASSERT_INT32_WITHIN(20, pid_expected_output[i / 5], real_world.input);
         TaskRealWorld(NULL);
-        TEST_ASSERT_INT32_WITHIN(20,controlled_expected_output[i / 5], REAL_WORLD_Output());
+        TEST_ASSERT_INT32_WITHIN(20, controlled_expected_output[i / 5], REAL_WORLD_Output());
     }
     tick_count += TEST_TIME;
     TEST_ASSERT_EQUAL_UINT32(tick_count, OSAL_TASK_GetTickCount());

@@ -43,7 +43,7 @@ expected_output_path = os.path.join(expected_output_dir, "expected_output.h")
 
 r_1 = 10e3
 c_1 = 1e-6
-r_2 = 18e3 #valor particular de la planta
+r_2 = 18e3
 c_2 = 1e-6
 
 s = cnt.tf('s')
@@ -61,21 +61,32 @@ DEN2 = denz_planta[2]
 NUM0 = numz_planta[0]
 NUM1 = numz_planta[1]
 
-# DEN0 = 1.882072
-# DEN1 = -1.273800
-# DEN2 = 0.390088
-# NUM0 = 0.003235
-# NUM1 = 0.023929
+
+
+# print("DEN0 = ",DEN0)
+# print("DEN1 = ",DEN1)
+# print("DEN2 = ",DEN2)
+# print("NUM0 = ",NUM0)
+# print("NUM1 = ",NUM1)
+
+print("// Coeficientes del numerador en Q15")
+print(f"#define NUM0 Q15_SCALE({NUM0})")
+print(f"#define NUM1 Q15_SCALE({NUM1})")
+print("\n// Coeficientes del denominador en Q15")
+print(f"#define DEN0 Q15_SCALE({DEN0})")
+print(f"#define DEN1 Q15_SCALE({DEN1})")
+print(f"#define DEN2 Q15_SCALE({DEN2})")
+# # DEN0 = 1.000000
+# # DEN1 = -0.914136
+# # DEN2 = -0.043714
+# # NUM0 = 0.566069
+# # NUM1 = -0.524298
+
 
 # Definición de coeficientes en Q15
 NUM = [int(NUM0 * (1 << 15)), int(NUM1 * (1 << 15))]
 DEN = [int(DEN0 * (1 << 15)), int(DEN1 * (1 << 15)), int(DEN2 * (1 << 15))]
 
-# NUM = [int(0.0041309458458261838 * (1 << 15)), int(0.048339736956908297  * (1 << 15))]
-# DEN = [int(1.8107526733935444 * (1 << 15)), int(-1.1851826187871666 * (1 << 15)), int(0.32212874048961293 * (1 << 15))]
-
-# NUM = [int(0.04976845 * (1 << 15)), int(0.03505064 * (1 << 15))]
-# DEN = [int(1.0 * (1 << 15)), int(-1.2631799459800208 * (1 << 15)), int(0.34799904079225535 * (1 << 15))]
 
 # Buffers para mantener el estado
 input_buffer = [0] * len(NUM)
@@ -253,13 +264,13 @@ numz_1 = numz_1[0][0]
 denz_1 = denz_1[0][0]
 
 y_sys = [0]
-# numz_1 = [int(0.41666059 * (1<<15)), int(-0.54398644 * (1<<15)), int(0.15342283 * (1<<15))]
-# denz_1 = [int(1.0 * (1<<15)), int(-1.8569365254781038 * (1<<15)), int(1.0826991410679994 * (1<<15)), int(-0.19966564006790186 * (1<<15))]
-print(numz_1)
-print(denz_1)
 
 numz_1 = (numz_1 * (1 << 15)).astype(int)
 denz_1 = (denz_1 * (1 << 15)).astype(int)
+
+print(numz_1)
+print(denz_1)
+
 reset_recurrence2(numz_1, denz_1)
 reset_recurrence(NUM,DEN)
 y_pid = []
