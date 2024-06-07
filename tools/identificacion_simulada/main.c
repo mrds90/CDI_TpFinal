@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <math.h>
 
+#define HARDCODED_PRBS
+
 #define DATA_SIZE 100
 
 #define A_SIZE 3
@@ -58,35 +60,12 @@ static int32_t RecurrenceFunction(int32_t input) {
 }
 
 
-// static float RecurrenceFunction(float input) {
-//     // Desplazar valores en el buffer de entrada
-//     for (int i = B_SIZE - 1; i > 0; --i) {
-//         real_world.input_buffer[i] = real_world.input_buffer[i - 1];
-//     }
-//     real_world.input_buffer[0] = input;
-
-//     // Calcular la parte del numerador
-//     float output = 0;
-//     output += (NUM0 * real_world.input_buffer[0]) ;
-//     output += (NUM1 * real_world.input_buffer[1]) ;
-
-//     // Calcular la parte del denominador
-//     output -= (DEN1 * real_world.output_buffer[0]);
-//     output -= (DEN2 * real_world.output_buffer[1]);
-
-//     // Desplazar valores en el buffer de salida
-//     for (int i = A_SIZE - 2; i > 0; --i) {
-//         real_world.output_buffer[i] = real_world.output_buffer[i - 1];
-//     }
-//     real_world.output_buffer[0] = output;
-
-//     return output;
-// }
-
-
 // Datos simulados de entrada y salida
-// static float u_sys[100] = {[0 ... 99] = 0};
+#ifndef HARDCODED_PRBS
+static float u_sys[100] = {[0 ... 99] = 0};
+#else
 static float u_sys[100] = {0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0};
+#endif
 // float u[DATA_SIZE];
 static float y_sys[DATA_SIZE]; // Salida
 
@@ -221,7 +200,9 @@ void LeastSquares(float *u, float *y, int size, float *a, float *b) {
 int main() {
     float a[3], b[2];
 
-    // generate_prbs_signal(u_sys, DATA_SIZE);
+    #ifndef HARDCODED_PRBS
+    generate_prbs_signal(u_sys, DATA_SIZE);
+    #endif
     AcquireOutputSignal(u_sys, y_sys, DATA_SIZE);
     LeastSquares(u_sys, y_sys, DATA_SIZE, a, b);
 
@@ -233,14 +214,3 @@ int main() {
     printf("NUM0 = %f\nNUM1 = %f\n\n", (float)b[0], (float)b[1]);
     return 0;
 }
-
-// System parameters:
-// a0: 1.000000, a1: -1.263180, a2: 0.347999
-// b0: 0.049768, b1: 0.035051
-
-// Identified system parameters:
-// DEN0 = 1.000000
-// DEN1 = 1.263180
-// DEN2 = -0.347999
-// NUM0 = 0.049768
-// NUM1 = 0.035051
