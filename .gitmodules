@@ -1,3 +1,6 @@
 [submodule "CIAAFirmware"]
 	path = CIAAFirmware
 	url = git@github.com:mrds90/CDI_Final_CIAA.git
+[submodule "tools/PolePlacementModel"]
+	path = tools/PolePlacementModel
+	url = git@github.com:mrds90/CDI_Practica4.git
