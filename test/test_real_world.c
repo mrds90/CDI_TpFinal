@@ -12,6 +12,7 @@
 /*========= [DEPENDENCIES] =====================================================*/
 
 #include "unity.h"
+#include "real_world_filter.h"
 #include "real_world.h"
 #include "osal_task.h"
 #include "port_task_freertos.h"
@@ -25,8 +26,6 @@
 /*========= [TASK DECLARATIONS] ================================================*/
 
 /*========= [PRIVATE FUNCTION DECLARATIONS] ====================================*/
-
-int32_t RecurrenceFunction(int32_t input);
 
 /*========= [INTERRUPT FUNCTION DECLARATIONS] ==================================*/
 
@@ -42,7 +41,7 @@ void test_RecurrenceFunction(void) {
 
     // Realizar el test
     for (int i = 0; i < num_samples; ++i) {
-        int32_t actual_output = RecurrenceFunction(step_input[i]);
+        int32_t actual_output = REAL_WORLD_FILTER_Filter(step_input[i]);
         TEST_ASSERT_EQUAL_INT32(step_expected_output[i], actual_output);
     }
 }

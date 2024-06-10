@@ -14,6 +14,8 @@
 #include "unity.h"
 
 #include "interface.h"
+#include "real_world_filter.h"
+#include "pid.h"
 #include "control.h"
 #include "real_world.h"
 
