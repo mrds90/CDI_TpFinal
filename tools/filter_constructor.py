@@ -1,9 +1,11 @@
 import argparse
 from datetime import datetime
 import os
+from typing import List, Tuple
+
 class FilterGenerator:
     # Class-level constants for templates
-    c_template = """/**
+    c_template: str = """/**
  * @file {source_file}.c
  * @author Marcos Dominguez
  *
@@ -17,12 +19,11 @@ class FilterGenerator:
 
 #include "{header_file}.h"
 #include <string.h>
+{additional_includes}
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
 
-#ifndef MUL_ELEMENTS
-#define MUL_ELEMENTS(x,y)  ((x) * (y))
-#endif
+{macro_definitions}
 
 #define F_TO_Q15(x)  (int32_t)((x) * (1 << 15))
 
@@ -61,7 +62,7 @@ static int32_t output_buffer[DEN_SIZE - 1] = {{[0 ... (DEN_SIZE - 2)] = 0}};
 /*========= [INTERRUPT FUNCTION IMPLEMENTATION] ================================*/
 """
 
-    h_template = """/**
+    h_template: str = """/**
  * @file {header_file}.h
  * @author Marcos Dominguez
  *
@@ -106,7 +107,21 @@ int32_t {file_upper}_Filter(int32_t input);
 #endif  /* {header_guard} */
 """
 
-    def __init__(self, base_name, num_coeffs, den_coeffs):
+    def __init__(self, base_name: str, num_coeffs: List[float], den_coeffs: List[float], additional_includes: List[str] = None,
+                 mul_elements: str = None, mul_elements_q15: str = None, mul_sum_elements_q15: str = None, mul_sub_elements_q15: str = None):
+        """
+        Initializes the FilterGenerator with base name, numerator and denominator coefficients,
+        and optional additional includes and macro definitions.
+
+        :param base_name: Base name for the generated files
+        :param num_coeffs: List of numerator coefficients
+        :param den_coeffs: List of denominator coefficients
+        :param additional_includes: List of additional include files
+        :param mul_elements: Custom definition for MUL_ELEMENTS macro
+        :param mul_elements_q15: Custom definition for MUL_ELEMENTS_Q15 macro
+        :param mul_sum_elements_q15: Custom definition for MUL_SUM_ELEMENTS_Q15 macro
+        :param mul_sub_elements_q15: Custom definition for MUL_SUB_ELEMENTS_Q15 macro
+        """
         self.base_name = base_name
         self.num_coeffs = num_coeffs
         self.den_coeffs = den_coeffs
@@ -116,10 +131,72 @@ int32_t {file_upper}_Filter(int32_t input);
         self.header_guard = f"{self.file_upper}_H"
         self.date = datetime.now().strftime("%Y-%m-%d")
         
+        self.additional_includes = additional_includes if additional_includes else []
+        
+        # Macro definitions with default values
+        self.mul_elements = mul_elements if mul_elements else "#define MUL_ELEMENTS(x, y)  ((x) * (y))"
+        self.mul_elements_q15 = mul_elements_q15 if mul_elements_q15 else "#define MUL_ELEMENTS_Q15(x, y)  (MUL_ELEMENTS(x, y) >> 15)"
+        self.mul_sum_elements_q15 = mul_sum_elements_q15 if mul_sum_elements_q15 else "#define MUL_SUM_ELEMENTS_Q15(x, y, z) ((z) + MUL_ELEMENTS_Q15((x), (y)))"
+        self.mul_sub_elements_q15 = mul_sub_elements_q15 if mul_sub_elements_q15 else "#define MUL_SUB_ELEMENTS_Q15(x, y, z) ((z) - MUL_ELEMENTS_Q15((x), (y)))"
+        
         self.num_size, self.den_size, self.num_defines, self.den_defines, self.function_definitions = self.generate_function_definitions()
         self.reset_function = self.generate_reset_function()
 
-    def generate_c_file(self):
+    def add_include(self, include: str) -> None:
+        """
+        Adds an additional include file.
+
+        :param include: The include file to add
+        """
+        self.additional_includes.append(include)
+    
+    def set_mul_elements(self, definition: str) -> None:
+        """
+        Sets a custom definition for the MUL_ELEMENTS macro.
+
+        :param definition: Custom definition for MUL_ELEMENTS
+        """
+        self.mul_elements = f"#define MUL_ELEMENTS(x, y)  {definition}"
+
+    def set_mul_elements_q15(self, definition: str) -> None:
+        """
+        Sets a custom definition for the MUL_ELEMENTS_Q15 macro.
+
+        :param definition: Custom definition for MUL_ELEMENTS_Q15
+        """
+        self.mul_elements_q15 = f"#define MUL_ELEMENTS_Q15(x, y)  {definition}"
+
+    def set_mul_sum_elements_q15(self, definition: str) -> None:
+        """
+        Sets a custom definition for the MUL_SUM_ELEMENTS_Q15 macro.
+
+        :param definition: Custom definition for MUL_SUM_ELEMENTS_Q15
+        """
+        self.mul_sum_elements_q15 = f"#define MUL_SUM_ELEMENTS_Q15(x, y, z)  {definition}"
+
+    def set_mul_sub_elements_q15(self, definition: str) -> None:
+        """
+        Sets a custom definition for the MUL_SUB_ELEMENTS_Q15 macro.
+
+        :param definition: Custom definition for MUL_SUB_ELEMENTS_Q15
+        """
+        self.mul_sub_elements_q15 = f"#define MUL_SUB_ELEMENTS_Q15(x, y, z)  {definition}"
+
+    def generate_c_file(self) -> str:
+        """
+        Generates the content for the .c file.
+
+        :return: Generated C file content
+        """
+        additional_includes_str = "\n".join([f"#include {include}" for include in self.additional_includes])
+        
+        macro_definitions = "\n".join([
+            f"#ifndef MUL_ELEMENTS\n{self.mul_elements}\n#endif",
+            f"#ifndef MUL_ELEMENTS_Q15\n{self.mul_elements_q15}\n#endif",
+            f"#ifndef MUL_SUM_ELEMENTS_Q15\n{self.mul_sum_elements_q15}\n#endif",
+            f"#ifndef MUL_SUB_ELEMENTS_Q15\n{self.mul_sub_elements_q15}\n#endif"
+        ])
+        
         return self.c_template.format(
             source_file=self.source_file,
             num_defines=self.num_defines,
@@ -130,10 +207,17 @@ int32_t {file_upper}_Filter(int32_t input);
             date=self.date,
             header_file=self.header_file,
             file_upper=self.file_upper,
-            reset_function=self.reset_function
+            reset_function=self.reset_function,
+            additional_includes=additional_includes_str,
+            macro_definitions=macro_definitions
         )
 
-    def generate_h_file(self):
+    def generate_h_file(self) -> str:
+        """
+        Generates the content for the .h file.
+
+        :return: Generated header file content
+        """
         return self.h_template.format(
             header_file=self.header_file,
             header_guard=self.header_guard,
@@ -141,14 +225,25 @@ int32_t {file_upper}_Filter(int32_t input);
             file_upper=self.file_upper
         )
 
-    def generate_reset_function(self):
+    def generate_reset_function(self) -> str:
+        """
+        Generates the reset function definition.
+
+        :return: Generated reset function definition
+        """
         reset_function = f"""int32_t {self.file_upper}_Reset() {{
     memset(output_buffer, 0, sizeof(output_buffer));
     memset(input_buffer, 0, sizeof(input_buffer));
 }}"""
         return reset_function
 
-    def generate_function_definitions(self):
+    def generate_function_definitions(self) -> Tuple[int, int, str, str, str]:
+        """
+        Generates the filter function definitions and related information.
+
+        :return: Tuple containing number of numerator coefficients, number of denominator coefficients,
+                 numerator definitions, denominator definitions, and function code
+        """
         num_size = len(self.num_coeffs)
         den_size = len(self.den_coeffs)
         
@@ -165,11 +260,11 @@ int32_t {file_upper}_Filter(int32_t input);
     /* Calculate the numerator part */
     int32_t output = 0;
 """ +
-            "".join([f"    output += MUL_ELEMENTS(NUM{i}, input_buffer[{i}]) >> 15;\n" for i in range(num_size)]) +
+            "".join([f"    output = MUL_SUM_ELEMENTS_Q15(NUM{i}, input_buffer[{i}], output);\n" for i in range(num_size)]) +
         f"""
     /* Calculate the denominator part */
 """ +
-            "".join([f"    output -= MUL_ELEMENTS(DEN{i}, output_buffer[{i-1}]) >> 15;\n" for i in range(1, den_size)]) +
+            "".join([f"    output = MUL_SUB_ELEMENTS_Q15(DEN{i}, output_buffer[{i-1}], output);\n" for i in range(1, den_size)]) +
         f"""
     /* Shift values in the output buffer */
     for (int i = DEN_SIZE - 2; i > 0; --i) {{
@@ -181,7 +276,13 @@ int32_t {file_upper}_Filter(int32_t input);
 }}""")
         return num_size, den_size, num_defines, den_defines, function_code
 
-    def write_files(self, path_c, path_h ):
+    def write_files(self, path_c: str, path_h: str) -> None:
+        """
+        Writes the generated C and header files to the specified paths.
+
+        :param path_c: Path to the directory for the C file
+        :param path_h: Path to the directory for the header file
+        """
         c_file_path = os.path.join(path_c, f"{self.base_name}.c")
         h_file_path = os.path.join(path_h, f"{self.base_name}.h")
         
@@ -199,7 +300,8 @@ int32_t {file_upper}_Filter(int32_t input);
             h_file.write(h_content)
             
         print(f"Files {c_file_path} and {h_file_path} generated successfully.")
-        
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Generate .c and .h files based on templates.")
