@@ -67,8 +67,9 @@ NUM1 = numz_planta[1]
 
 # Nombre del archivo
 file_name = "real_world_filter"
-c_file_path = "../CIAAFirmware/src"
-h_file_path = "../CIAAFirmware/inc"
+c_file_path = os.path.join(current_dir, "../CIAAFirmware/src")
+h_file_path = os.path.join(current_dir, "../CIAAFirmware/inc")
+
 print(numz_planta)
 print(denz_planta)
 # Llamar al script de generación de archivos .c y .h
@@ -255,13 +256,6 @@ rt = calculate_rise_time(t_cl,y_cl)
 print('Tiempo de subida en con PID:',rt)
 print('Sobrepico: ',max(y_cl))
 
-plt.grid(color='k', linestyle='-', linewidth=0.2)
-plt.plot(t_ol, y_ol, 'r--', label='Out_ol')
-plt.plot(t_cl, y_cl, 'b-', label='Out_cl')
-plt.legend(loc='best')
-plt.xlabel('Time (s)')
-plt.ylabel('Amplitude')
-plt.show()
 
 K  = 4.0 
 Ti = 0.04
@@ -277,11 +271,15 @@ denz_1 = denz_1[0][0]
 
 y_sys = [0]
 
+pid_module = FilterGenerator("pid", numz_1, denz_1)
+pid_module.write_files(c_file_path, h_file_path)
+
 numz_1 = (numz_1 * (1 << 15)).astype(int)
 denz_1 = (denz_1 * (1 << 15)).astype(int)
 
 print(numz_1)
 print(denz_1)
+
 
 reset_recurrence2(numz_1, denz_1)
 reset_recurrence(NUM,DEN)
@@ -297,6 +295,17 @@ for i, value in enumerate(u_square):
 
 # Convertir a numpy array para facilitar el ploteo
 y_sys = np.array(y_sys[1:])
+
+
+plt.grid(color='k', linestyle='-', linewidth=0.2)
+plt.plot(t_ol, y_ol, 'r--', label='Out_ol')
+plt.plot(t_cl, y_cl, 'b-', label='Out_cl')
+plt.legend(loc='best')
+plt.title("Response with PID (theory)")
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.show()
+
 
 pid_output_str = f"static int32_t pid_expected_output[] = {{{', '.join(map(str, y_pid))}}};\n"
 cont_sys_output_str = f"static int32_t controlled_expected_output[] = {{{', '.join(map(str, y_sys))}}};\n\n"
