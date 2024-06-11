@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import control as cnt
+from filter_constructor import FilterGenerator
 
 CB_color_cycle = (
     "#377eb8",
@@ -62,6 +63,15 @@ NUM0 = numz_planta[0]
 NUM1 = numz_planta[1]
 
 
+
+
+# Nombre del archivo
+file_name = "real_world_filter"
+print(numz_planta)
+print(denz_planta)
+# Llamar al script de generación de archivos .c y .h
+module = FilterGenerator(file_name, numz_planta, denz_planta)
+module.write_files()
 
 # print("DEN0 = ",DEN0)
 # print("DEN1 = ",DEN1)
