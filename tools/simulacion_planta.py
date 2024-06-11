@@ -67,11 +67,13 @@ NUM1 = numz_planta[1]
 
 # Nombre del archivo
 file_name = "real_world_filter"
+c_file_path = "../CIAAFirmware/src"
+h_file_path = "../CIAAFirmware/inc"
 print(numz_planta)
 print(denz_planta)
 # Llamar al script de generación de archivos .c y .h
 module = FilterGenerator(file_name, numz_planta, denz_planta)
-module.write_files()
+module.write_files(c_file_path, h_file_path)
 
 # print("DEN0 = ",DEN0)
 # print("DEN1 = ",DEN1)

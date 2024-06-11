@@ -1,6 +1,6 @@
 import argparse
 from datetime import datetime
-
+import os
 class FilterGenerator:
     # Class-level constants for templates
     c_template = """/**
@@ -19,6 +19,10 @@ class FilterGenerator:
 #include <string.h>
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
+
+#ifndef MUL_ELEMENTS
+#define MUL_ELEMENTS(x,y)  ((x) * (y))
+#endif
 
 #define F_TO_Q15(x)  (int32_t)((x) * (1 << 15))
 
@@ -176,11 +180,11 @@ int32_t {self.file_upper}_Filter(int32_t input) {{
     /* Calculate the numerator part */
     int32_t output = 0;
 """ +
-            "".join([f"    output += (NUM{i} * input_buffer[{i}]) >> 15;\n" for i in range(num_size)]) +
+            "".join([f"    output += MUL_ELEMENTS(NUM{i}, input_buffer[{i}]) >> 15;\n" for i in range(num_size)]) +
         f"""
     /* Calculate the denominator part */
 """ +
-            "".join([f"    output -= (DEN{i} * output_buffer[{i-1}]) >> 15;\n" for i in range(1, den_size)]) +
+            "".join([f"    output -= MUL_ELEMENTS(DEN{i}, output_buffer[{i-1}]) >> 15;\n" for i in range(1, den_size)]) +
         f"""
     /* Shift values in the output buffer */
     for (int i = DEN_SIZE - 2; i > 0; --i) {{
@@ -192,17 +196,25 @@ int32_t {self.file_upper}_Filter(int32_t input) {{
 }}""")
         return num_size, den_size, num_defines, den_defines, function_code
 
-    def write_files(self):
+    def write_files(self, path_c, path_h ):
+        c_file_path = os.path.join(path_c, f"{self.base_name}.c")
+        h_file_path = os.path.join(path_h, f"{self.base_name}.h")
+        
         c_content = self.generate_c_file()
         h_content = self.generate_h_file()
         
-        with open(f"{self.base_name}.c", "w") as c_file:
+        # Ensure the directory exists
+        os.makedirs(path_c, exist_ok=True)
+        os.makedirs(path_h, exist_ok=True)
+        
+        with open(c_file_path, "w") as c_file:
             c_file.write(c_content)
             
-        with open(f"{self.base_name}.h", "w") as h_file:
+        with open(h_file_path, "w") as h_file:
             h_file.write(h_content)
             
-        print(f"Files {self.base_name}.c and {self.base_name}.h generated successfully.")
+        print(f"Files {c_file_path} and {h_file_path} generated successfully.")
+        
 
 def main():
     parser = argparse.ArgumentParser(description="Generate .c and .h files based on templates.")
