@@ -18,6 +18,7 @@
 #include "pid.h"
 #include "control.h"
 #include "real_world.h"
+#include "filter_math.h"
 
 #include "osal_task.h"
 #include "port_task_freertos.h"

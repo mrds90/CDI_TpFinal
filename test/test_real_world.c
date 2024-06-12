@@ -18,6 +18,8 @@
 #include "port_task_freertos.h"
 #include "FreeRTOS_task_simulated.h"
 #include "expected_output.h"
+#include "filter_math.h"
+
 
 /*========= [PRIVATE MACROS AND CONSTANTS] =====================================*/
 
